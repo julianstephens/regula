@@ -15,22 +15,22 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 type CollectionName =
-  | "areas"
-  | "programs"
-  | "resources"
-  | "study_items"
-  | "study_sessions"
-  | "item_events"
-  | "user_settings";
+  | "regula_areas"
+  | "regula_programs"
+  | "regula_resources"
+  | "regula_study_items"
+  | "regula_study_sessions"
+  | "regula_item_events"
+  | "regula_user_settings";
 
 const COLLECTIONS: { key: CollectionName; label: string; }[] = [
-  { key: "areas", label: "Areas" },
-  { key: "programs", label: "Programs" },
-  { key: "resources", label: "Resources" },
-  { key: "study_items", label: "Study Items" },
-  { key: "study_sessions", label: "Study Sessions" },
-  { key: "item_events", label: "Item Events" },
-  { key: "user_settings", label: "User Settings" },
+  { key: "regula_areas", label: "Areas" },
+  { key: "regula_programs", label: "Programs" },
+  { key: "regula_resources", label: "Resources" },
+  { key: "regula_study_items", label: "Study Items" },
+  { key: "regula_study_sessions", label: "Study Sessions" },
+  { key: "regula_item_events", label: "Item Events" },
+  { key: "regula_user_settings", label: "User Settings" },
 ];
 
 function downloadBlob(filename: string, content: string, mime: string) {

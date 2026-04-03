@@ -205,7 +205,7 @@ export default function Dashboard() {
     let unsub2: (() => void) | undefined;
 
     void pb
-      .collection("study_sessions")
+      .collection("regula_study_sessions")
       .subscribe("*", () => {
         void qc.invalidateQueries({ queryKey: ["dashboard"] });
       })
@@ -214,7 +214,7 @@ export default function Dashboard() {
       });
 
     void pb
-      .collection("study_items")
+      .collection("regula_study_items")
       .subscribe("*", () => {
         void qc.invalidateQueries({ queryKey: ["dashboard"] });
       })
@@ -223,8 +223,8 @@ export default function Dashboard() {
       });
 
     return () => {
-      void pb.collection("study_sessions").unsubscribe("*");
-      void pb.collection("study_items").unsubscribe("*");
+      void pb.collection("regula_study_sessions").unsubscribe("*");
+      void pb.collection("regula_study_items").unsubscribe("*");
       unsub1?.();
       unsub2?.();
     };

@@ -19,7 +19,7 @@ export async function listSessions(
   if (filters.dateTo) parts.push(`started_at <= "${filters.dateTo}"`);
   const filter = parts.join(" && ");
 
-  return pb.collection("study_sessions").getFullList({
+  return pb.collection("regula_study_sessions").getFullList({
     sort: "-started_at",
     filter,
     expand: "study_items,area",
@@ -34,16 +34,16 @@ export async function startSession(
 
   for (const id of studyItemIds) {
     const item = (await pb
-      .collection("study_items")
+      .collection("regula_study_items")
       .getOne(id)) as import("@/types/domain").StudyItem;
     if (!areaId) areaId = item.area;
     if (item.status === "available") {
-      await pb.collection("study_items").update(id, { status: "in_progress" });
+      await pb.collection("regula_study_items").update(id, { status: "in_progress" });
       await createEvent(id, "started");
     }
   }
 
-  return pb.collection("study_sessions").create({
+  return pb.collection("regula_study_sessions").create({
     study_items: studyItemIds,
     area: areaId,
     started_at: new Date().toISOString(),
@@ -58,14 +58,14 @@ export async function endSession(
 ): Promise<StudySession> {
   const endedAt = new Date().toISOString();
   const session = await (pb
-    .collection("study_sessions")
+    .collection("regula_study_sessions")
     .getOne(sessionId) as Promise<StudySession>);
   const startedAt = new Date(session.started_at);
   const durationMinutes = Math.round(
     (Date.now() - startedAt.getTime()) / 60_000,
   );
 
-  const updated = await (pb.collection("study_sessions").update(sessionId, {
+  const updated = await (pb.collection("regula_study_sessions").update(sessionId, {
     ended_at: endedAt,
     outcome,
     duration_minutes: durationMinutes,
@@ -84,7 +84,7 @@ export async function endSession(
 export async function logSession(
   data: Partial<StudySession>,
 ): Promise<StudySession> {
-  const session = await (pb.collection("study_sessions").create({
+  const session = await (pb.collection("regula_study_sessions").create({
     ...data,
     owner: pb.authStore.record!.id,
   }) as Promise<StudySession>);

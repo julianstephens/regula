@@ -1,0 +1,776 @@
+[
+    {
+        "id": "areascolid00001",
+        "name": "regula_areas",
+        "type": "base",
+        "system": false,
+        "fields": [
+            {
+                "name": "name",
+                "type": "text",
+                "required": true,
+                "presentable": false,
+                "hidden": false,
+                "system": false
+            },
+            {
+                "name": "color",
+                "type": "text",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false
+            },
+            {
+                "name": "description",
+                "type": "text",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false
+            },
+            {
+                "name": "owner",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "collectionId": "_pb_users_auth_",
+                "cascadeDelete": false,
+                "minSelect": null,
+                "maxSelect": 1
+            },
+            {
+                "name": "created",
+                "type": "autodate",
+                "system": true,
+                "presentable": false,
+                "hidden": false,
+                "onCreate": true,
+                "onUpdate": false
+            },
+            {
+                "name": "updated",
+                "type": "autodate",
+                "system": true,
+                "presentable": false,
+                "hidden": false,
+                "onCreate": true,
+                "onUpdate": true
+            }
+        ],
+        "indexes": [],
+        "listRule": "owner = @request.auth.id",
+        "viewRule": "owner = @request.auth.id",
+        "createRule": "owner = @request.auth.id",
+        "updateRule": "owner = @request.auth.id",
+        "deleteRule": "owner = @request.auth.id"
+    },
+    {
+        "id": "progrscolid0001",
+        "name": "regula_programs",
+        "type": "base",
+        "system": false,
+        "fields": [
+            {
+                "name": "name",
+                "type": "text",
+                "required": true,
+                "presentable": false,
+                "hidden": false,
+                "system": false
+            },
+            {
+                "name": "description",
+                "type": "text",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false
+            },
+            {
+                "name": "start_date",
+                "type": "date",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "min": "",
+                "max": ""
+            },
+            {
+                "name": "end_date",
+                "type": "date",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "min": "",
+                "max": ""
+            },
+            {
+                "name": "type",
+                "type": "select",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "maxSelect": 1,
+                "values": [
+                    "year",
+                    "term",
+                    "block",
+                    "custom"
+                ]
+            },
+            {
+                "name": "status",
+                "type": "select",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "maxSelect": 1,
+                "values": [
+                    "planned",
+                    "active",
+                    "completed",
+                    "archived"
+                ]
+            },
+            {
+                "name": "block_weeks",
+                "type": "number",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "min": 2,
+                "max": 6,
+                "noDecimal": false
+            },
+            {
+                "name": "owner",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "collectionId": "_pb_users_auth_",
+                "cascadeDelete": false,
+                "minSelect": null,
+                "maxSelect": 1
+            },
+            {
+                "name": "parent",
+                "type": "relation",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "collectionId": "progrscolid0001",
+                "cascadeDelete": false,
+                "minSelect": null,
+                "maxSelect": 1
+            },
+            {
+                "name": "created",
+                "type": "autodate",
+                "system": true,
+                "presentable": false,
+                "hidden": false,
+                "onCreate": true,
+                "onUpdate": false
+            },
+            {
+                "name": "updated",
+                "type": "autodate",
+                "system": true,
+                "presentable": false,
+                "hidden": false,
+                "onCreate": true,
+                "onUpdate": true
+            }
+        ],
+        "indexes": [],
+        "listRule": "owner = @request.auth.id",
+        "viewRule": "owner = @request.auth.id",
+        "createRule": "owner = @request.auth.id",
+        "updateRule": "owner = @request.auth.id",
+        "deleteRule": "owner = @request.auth.id"
+    },
+    {
+        "id": "resrccolid00001",
+        "name": "regula_resources",
+        "type": "base",
+        "system": false,
+        "fields": [
+            {
+                "name": "title",
+                "type": "text",
+                "required": true,
+                "presentable": false,
+                "hidden": false,
+                "system": false
+            },
+            {
+                "name": "author",
+                "type": "text",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false
+            },
+            {
+                "name": "url",
+                "type": "url",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "exceptDomains": null,
+                "onlyDomains": null
+            },
+            {
+                "name": "notes",
+                "type": "text",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false
+            },
+            {
+                "name": "resource_type",
+                "type": "select",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "maxSelect": 1,
+                "values": [
+                    "book",
+                    "article",
+                    "video",
+                    "podcast",
+                    "course",
+                    "other"
+                ]
+            },
+            {
+                "name": "area",
+                "type": "relation",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "collectionId": "areascolid00001",
+                "cascadeDelete": false,
+                "minSelect": null,
+                "maxSelect": 1
+            },
+            {
+                "name": "owner",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "collectionId": "_pb_users_auth_",
+                "cascadeDelete": false,
+                "minSelect": null,
+                "maxSelect": 1
+            },
+            {
+                "name": "created",
+                "type": "autodate",
+                "system": true,
+                "presentable": false,
+                "hidden": false,
+                "onCreate": true,
+                "onUpdate": false
+            },
+            {
+                "name": "updated",
+                "type": "autodate",
+                "system": true,
+                "presentable": false,
+                "hidden": false,
+                "onCreate": true,
+                "onUpdate": true
+            }
+        ],
+        "indexes": [],
+        "listRule": "owner = @request.auth.id",
+        "viewRule": "owner = @request.auth.id",
+        "createRule": "owner = @request.auth.id",
+        "updateRule": "owner = @request.auth.id",
+        "deleteRule": "owner = @request.auth.id"
+    },
+    {
+        "id": "sitmcolid000001",
+        "name": "regula_study_items",
+        "type": "base",
+        "system": false,
+        "fields": [
+            {
+                "name": "title",
+                "type": "text",
+                "required": true,
+                "presentable": false,
+                "hidden": false,
+                "system": false
+            },
+            {
+                "name": "notes",
+                "type": "text",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false
+            },
+            {
+                "name": "due_date",
+                "type": "date",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "min": "",
+                "max": ""
+            },
+            {
+                "name": "scheduled_date",
+                "type": "date",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "min": "",
+                "max": ""
+            },
+            {
+                "name": "completion_date",
+                "type": "date",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "min": "",
+                "max": ""
+            },
+            {
+                "name": "estimated_minutes",
+                "type": "number",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "min": null,
+                "max": null,
+                "noDecimal": false
+            },
+            {
+                "name": "item_type",
+                "type": "select",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "maxSelect": 1,
+                "values": [
+                    "reading",
+                    "writing",
+                    "memorization",
+                    "exercise",
+                    "review",
+                    "quiz",
+                    "exam",
+                    "paper",
+                    "other"
+                ]
+            },
+            {
+                "name": "status",
+                "type": "select",
+                "required": true,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "maxSelect": 1,
+                "values": [
+                    "planned",
+                    "available",
+                    "in_progress",
+                    "completed",
+                    "deferred",
+                    "cancelled"
+                ]
+            },
+            {
+                "name": "priority",
+                "type": "select",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "maxSelect": 1,
+                "values": [
+                    "low",
+                    "normal",
+                    "high",
+                    "critical"
+                ]
+            },
+            {
+                "name": "area",
+                "type": "relation",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "collectionId": "areascolid00001",
+                "cascadeDelete": false,
+                "minSelect": null,
+                "maxSelect": 1
+            },
+            {
+                "name": "program",
+                "type": "relation",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "collectionId": "progrscolid0001",
+                "cascadeDelete": false,
+                "minSelect": null,
+                "maxSelect": 1
+            },
+            {
+                "name": "resource",
+                "type": "relation",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "collectionId": "resrccolid00001",
+                "cascadeDelete": false,
+                "minSelect": null,
+                "maxSelect": 1
+            },
+            {
+                "name": "owner",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "collectionId": "_pb_users_auth_",
+                "cascadeDelete": false,
+                "minSelect": null,
+                "maxSelect": 1
+            },
+            {
+                "name": "created",
+                "type": "autodate",
+                "system": true,
+                "presentable": false,
+                "hidden": false,
+                "onCreate": true,
+                "onUpdate": false
+            },
+            {
+                "name": "updated",
+                "type": "autodate",
+                "system": true,
+                "presentable": false,
+                "hidden": false,
+                "onCreate": true,
+                "onUpdate": true
+            }
+        ],
+        "indexes": [],
+        "listRule": "owner = @request.auth.id",
+        "viewRule": "owner = @request.auth.id",
+        "createRule": "owner = @request.auth.id",
+        "updateRule": "owner = @request.auth.id",
+        "deleteRule": "owner = @request.auth.id"
+    },
+    {
+        "id": "ssesscolid00001",
+        "name": "regula_study_sessions",
+        "type": "base",
+        "system": false,
+        "fields": [
+            {
+                "name": "started_at",
+                "type": "date",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "min": "",
+                "max": ""
+            },
+            {
+                "name": "ended_at",
+                "type": "date",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "min": "",
+                "max": ""
+            },
+            {
+                "name": "duration_minutes",
+                "type": "number",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "min": null,
+                "max": null,
+                "noDecimal": false
+            },
+            {
+                "name": "notes",
+                "type": "text",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false
+            },
+            {
+                "name": "session_type",
+                "type": "select",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "maxSelect": 1,
+                "values": [
+                    "deep_work",
+                    "light_review",
+                    "planning",
+                    "reread",
+                    "exercise",
+                    "writing"
+                ]
+            },
+            {
+                "name": "outcome",
+                "type": "select",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "maxSelect": 1,
+                "values": [
+                    "completed",
+                    "partial",
+                    "blocked",
+                    "abandoned"
+                ]
+            },
+            {
+                "name": "study_items",
+                "type": "relation",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "collectionId": "sitmcolid000001",
+                "cascadeDelete": false,
+                "minSelect": null,
+                "maxSelect": null
+            },
+            {
+                "name": "area",
+                "type": "relation",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "collectionId": "areascolid00001",
+                "cascadeDelete": false,
+                "minSelect": null,
+                "maxSelect": 1
+            },
+            {
+                "name": "owner",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "collectionId": "_pb_users_auth_",
+                "cascadeDelete": false,
+                "minSelect": null,
+                "maxSelect": 1
+            },
+            {
+                "name": "created",
+                "type": "autodate",
+                "system": true,
+                "presentable": false,
+                "hidden": false,
+                "onCreate": true,
+                "onUpdate": false
+            },
+            {
+                "name": "updated",
+                "type": "autodate",
+                "system": true,
+                "presentable": false,
+                "hidden": false,
+                "onCreate": true,
+                "onUpdate": true
+            }
+        ],
+        "indexes": [],
+        "listRule": "owner = @request.auth.id",
+        "viewRule": "owner = @request.auth.id",
+        "createRule": "owner = @request.auth.id",
+        "updateRule": "owner = @request.auth.id",
+        "deleteRule": "owner = @request.auth.id"
+    },
+    {
+        "id": "ievtcolid000001",
+        "name": "regula_item_events",
+        "type": "base",
+        "system": false,
+        "fields": [
+            {
+                "name": "notes",
+                "type": "text",
+                "required": false,
+                "presentable": false,
+                "hidden": false,
+                "system": false
+            },
+            {
+                "name": "event_type",
+                "type": "select",
+                "required": true,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "maxSelect": 1,
+                "values": [
+                    "created",
+                    "scheduled",
+                    "started",
+                    "completed",
+                    "deferred",
+                    "reopened",
+                    "cancelled",
+                    "edited"
+                ]
+            },
+            {
+                "name": "study_item",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "collectionId": "sitmcolid000001",
+                "cascadeDelete": true,
+                "minSelect": null,
+                "maxSelect": 1
+            },
+            {
+                "name": "owner",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "collectionId": "_pb_users_auth_",
+                "cascadeDelete": false,
+                "minSelect": null,
+                "maxSelect": 1
+            },
+            {
+                "name": "created",
+                "type": "autodate",
+                "system": true,
+                "presentable": false,
+                "hidden": false,
+                "onCreate": true,
+                "onUpdate": false
+            },
+            {
+                "name": "updated",
+                "type": "autodate",
+                "system": true,
+                "presentable": false,
+                "hidden": false,
+                "onCreate": true,
+                "onUpdate": true
+            }
+        ],
+        "indexes": [],
+        "listRule": "owner = @request.auth.id",
+        "viewRule": "owner = @request.auth.id",
+        "createRule": "owner = @request.auth.id",
+        "updateRule": "owner = @request.auth.id",
+        "deleteRule": "owner = @request.auth.id"
+    },
+    {
+        "id": "usetcolid000001",
+        "name": "regula_user_settings",
+        "type": "base",
+        "system": false,
+        "fields": [
+            {
+                "name": "block_weeks",
+                "type": "number",
+                "required": true,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "min": 2,
+                "max": 6,
+                "noDecimal": false
+            },
+            {
+                "name": "owner",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "hidden": false,
+                "system": false,
+                "collectionId": "_pb_users_auth_",
+                "cascadeDelete": true,
+                "minSelect": null,
+                "maxSelect": 1
+            },
+            {
+                "name": "created",
+                "type": "autodate",
+                "system": true,
+                "presentable": false,
+                "hidden": false,
+                "onCreate": true,
+                "onUpdate": false
+            },
+            {
+                "name": "updated",
+                "type": "autodate",
+                "system": true,
+                "presentable": false,
+                "hidden": false,
+                "onCreate": true,
+                "onUpdate": true
+            }
+        ],
+        "indexes": [],
+        "listRule": "owner = @request.auth.id",
+        "viewRule": "owner = @request.auth.id",
+        "createRule": "owner = @request.auth.id",
+        "updateRule": "owner = @request.auth.id",
+        "deleteRule": "owner = @request.auth.id"
+    }
+]

@@ -6,7 +6,7 @@ export async function createEvent(
   eventType: EventType,
   notes?: string,
 ): Promise<ItemEvent> {
-  return pb.collection("item_events").create({
+  return pb.collection("regula_item_events").create({
     study_item: studyItemId,
     event_type: eventType,
     notes: notes ?? "",

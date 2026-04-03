@@ -18,7 +18,7 @@ export async function listStudyItems(
   if (filters.program) parts.push(`program = "${filters.program}"`);
   const filter = parts.join(" && ");
 
-  return pb.collection("study_items").getFullList({
+  return pb.collection("regula_study_items").getFullList({
     sort: filters.sort ?? "due_date",
     filter,
     expand: "area,program,resource",
@@ -26,7 +26,7 @@ export async function listStudyItems(
 }
 
 export async function getStudyItem(id: string): Promise<StudyItem> {
-  return pb.collection("study_items").getOne(id, {
+  return pb.collection("regula_study_items").getOne(id, {
     expand: "area,program,resource",
   }) as Promise<StudyItem>;
 }
@@ -34,7 +34,7 @@ export async function getStudyItem(id: string): Promise<StudyItem> {
 export async function createStudyItem(
   data: Partial<StudyItem>,
 ): Promise<StudyItem> {
-  const item = await (pb.collection("study_items").create({
+  const item = await (pb.collection("regula_study_items").create({
     ...data,
     status: data.status ?? "planned",
     owner: pb.authStore.record!.id,
@@ -48,7 +48,7 @@ export async function updateStudyItem(
   data: Partial<StudyItem>,
 ): Promise<StudyItem> {
   const item = await (pb
-    .collection("study_items")
+    .collection("regula_study_items")
     .update(id, data) as Promise<StudyItem>);
   await createEvent(id, "edited");
   return item;
@@ -59,7 +59,7 @@ export async function changeStatus(
   status: ItemStatus,
 ): Promise<StudyItem> {
   const item = await (pb
-    .collection("study_items")
+    .collection("regula_study_items")
     .update(id, { status }) as Promise<StudyItem>);
 
   const eventMap: Record<ItemStatus, Parameters<typeof createEvent>[1]> = {
@@ -75,7 +75,7 @@ export async function changeStatus(
 }
 
 export async function completeItem(id: string): Promise<StudyItem> {
-  const item = await (pb.collection("study_items").update(id, {
+  const item = await (pb.collection("regula_study_items").update(id, {
     status: "completed",
     completion_date: new Date().toISOString(),
   }) as Promise<StudyItem>);
@@ -87,9 +87,9 @@ export async function deleteStudyItemsByProgram(
   programId: string,
 ): Promise<void> {
   const items = await pb
-    .collection("study_items")
+    .collection("regula_study_items")
     .getFullList({ filter: `program = "${programId}"` });
   await Promise.all(
-    items.map((item) => pb.collection("study_items").delete(item.id)),
+    items.map((item) => pb.collection("regula_study_items").delete(item.id)),
   );
 }

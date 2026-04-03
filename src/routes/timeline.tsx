@@ -32,10 +32,10 @@ type RestWeekEntry = {
 
 type MixedEntry =
   | {
-      kind: "event" | "session";
-      timestamp: string;
-      data: ItemEvent | StudySession;
-    }
+    kind: "event" | "session";
+    timestamp: string;
+    data: ItemEvent | StudySession;
+  }
   | RestWeekEntry;
 
 export default function Timeline() {
@@ -90,15 +90,15 @@ export default function Timeline() {
 
   // Realtime refresh
   useEffect(() => {
-    void pb.collection("item_events").subscribe("*", () => {
+    void pb.collection("regula_item_events").subscribe("*", () => {
       void qc.invalidateQueries({ queryKey: ["timeline"] });
     });
-    void pb.collection("study_sessions").subscribe("*", () => {
+    void pb.collection("regula_study_sessions").subscribe("*", () => {
       void qc.invalidateQueries({ queryKey: ["timeline"] });
     });
     return () => {
-      void pb.collection("item_events").unsubscribe("*");
-      void pb.collection("study_sessions").unsubscribe("*");
+      void pb.collection("regula_item_events").unsubscribe("*");
+      void pb.collection("regula_study_sessions").unsubscribe("*");
     };
   }, [qc]);
 
@@ -268,16 +268,16 @@ export default function Timeline() {
                       </Badge>
                       {sess.expand?.study_items?.length
                         ? sess.expand.study_items.map((it) => (
-                            <AppLink
-                              key={it.id}
-                              to={`/study-items/${it.id}`}
-                              fontWeight="medium"
-                              fontSize="sm"
-                              color="colorPalette.fg"
-                            >
-                              {it.title}
-                            </AppLink>
-                          ))
+                          <AppLink
+                            key={it.id}
+                            to={`/study-items/${it.id}`}
+                            fontWeight="medium"
+                            fontSize="sm"
+                            color="colorPalette.fg"
+                          >
+                            {it.title}
+                          </AppLink>
+                        ))
                         : null}
                       {sess.outcome && (
                         <Badge variant="outline" fontSize="xs">

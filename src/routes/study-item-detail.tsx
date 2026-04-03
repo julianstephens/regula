@@ -36,7 +36,7 @@ import { useState } from "react";
 import { useParams } from "react-router";
 
 export default function StudyItemDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams<{ id: string; }>();
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
@@ -56,7 +56,7 @@ export default function StudyItemDetail() {
   const { data: events = [] } = useQuery<ItemEvent[]>({
     queryKey: ["item_events", id],
     queryFn: () =>
-      pb.collection("item_events").getFullList({
+      pb.collection("regula_item_events").getFullList({
         filter: `study_items ~ "${id}"`,
         sort: "-created",
       }) as Promise<ItemEvent[]>,
