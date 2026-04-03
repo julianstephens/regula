@@ -6,6 +6,7 @@
         "system": false,
         "fields": [
             {
+                "id": "areas_name001",
                 "name": "name",
                 "type": "text",
                 "required": true,
@@ -14,6 +15,7 @@
                 "system": false
             },
             {
+                "id": "areas_color01",
                 "name": "color",
                 "type": "text",
                 "required": false,
@@ -22,6 +24,7 @@
                 "system": false
             },
             {
+                "id": "areas_desc001",
                 "name": "description",
                 "type": "text",
                 "required": false,
@@ -30,6 +33,7 @@
                 "system": false
             },
             {
+                "id": "areas_owner01",
                 "name": "owner",
                 "type": "relation",
                 "required": true,
@@ -42,6 +46,7 @@
                 "maxSelect": 1
             },
             {
+                "id": "areas_creat01",
                 "name": "created",
                 "type": "autodate",
                 "system": true,
@@ -51,6 +56,7 @@
                 "onUpdate": false
             },
             {
+                "id": "areas_updat01",
                 "name": "updated",
                 "type": "autodate",
                 "system": true,
@@ -74,6 +80,7 @@
         "system": false,
         "fields": [
             {
+                "id": "progs_name001",
                 "name": "name",
                 "type": "text",
                 "required": true,
@@ -82,6 +89,7 @@
                 "system": false
             },
             {
+                "id": "progs_desc001",
                 "name": "description",
                 "type": "text",
                 "required": false,
@@ -90,6 +98,7 @@
                 "system": false
             },
             {
+                "id": "progs_sdate01",
                 "name": "start_date",
                 "type": "date",
                 "required": false,
@@ -100,6 +109,7 @@
                 "max": ""
             },
             {
+                "id": "progs_edate01",
                 "name": "end_date",
                 "type": "date",
                 "required": false,
@@ -110,6 +120,7 @@
                 "max": ""
             },
             {
+                "id": "progs_type001",
                 "name": "type",
                 "type": "select",
                 "required": false,
@@ -125,6 +136,7 @@
                 ]
             },
             {
+                "id": "progs_stat001",
                 "name": "status",
                 "type": "select",
                 "required": false,
@@ -140,6 +152,7 @@
                 ]
             },
             {
+                "id": "progs_bwks001",
                 "name": "block_weeks",
                 "type": "number",
                 "required": false,
@@ -151,6 +164,7 @@
                 "noDecimal": false
             },
             {
+                "id": "progs_owner01",
                 "name": "owner",
                 "type": "relation",
                 "required": true,
@@ -163,6 +177,7 @@
                 "maxSelect": 1
             },
             {
+                "id": "progs_prnt001",
                 "name": "parent",
                 "type": "relation",
                 "required": false,
@@ -175,6 +190,7 @@
                 "maxSelect": 1
             },
             {
+                "id": "progs_creat01",
                 "name": "created",
                 "type": "autodate",
                 "system": true,
@@ -184,6 +200,7 @@
                 "onUpdate": false
             },
             {
+                "id": "progs_updat01",
                 "name": "updated",
                 "type": "autodate",
                 "system": true,
@@ -207,6 +224,7 @@
         "system": false,
         "fields": [
             {
+                "id": "rsrc_title001",
                 "name": "title",
                 "type": "text",
                 "required": true,
@@ -215,6 +233,7 @@
                 "system": false
             },
             {
+                "id": "rsrc_auth001",
                 "name": "author",
                 "type": "text",
                 "required": false,
@@ -223,6 +242,7 @@
                 "system": false
             },
             {
+                "id": "rsrc_url0001",
                 "name": "url",
                 "type": "url",
                 "required": false,
@@ -233,6 +253,7 @@
                 "onlyDomains": null
             },
             {
+                "id": "rsrc_notes01",
                 "name": "notes",
                 "type": "text",
                 "required": false,
@@ -241,6 +262,7 @@
                 "system": false
             },
             {
+                "id": "rsrc_rtype01",
                 "name": "resource_type",
                 "type": "select",
                 "required": false,
@@ -258,6 +280,7 @@
                 ]
             },
             {
+                "id": "rsrc_area001",
                 "name": "area",
                 "type": "relation",
                 "required": false,
@@ -270,6 +293,7 @@
                 "maxSelect": 1
             },
             {
+                "id": "rsrc_owner01",
                 "name": "owner",
                 "type": "relation",
                 "required": true,
@@ -282,6 +306,7 @@
                 "maxSelect": 1
             },
             {
+                "id": "rsrc_creat01",
                 "name": "created",
                 "type": "autodate",
                 "system": true,
@@ -291,6 +316,7 @@
                 "onUpdate": false
             },
             {
+                "id": "rsrc_updat01",
                 "name": "updated",
                 "type": "autodate",
                 "system": true,
@@ -314,6 +340,7 @@
         "system": false,
         "fields": [
             {
+                "id": "sitm_title01",
                 "name": "title",
                 "type": "text",
                 "required": true,
@@ -322,6 +349,7 @@
                 "system": false
             },
             {
+                "id": "sitm_notes01",
                 "name": "notes",
                 "type": "text",
                 "required": false,
@@ -330,6 +358,7 @@
                 "system": false
             },
             {
+                "id": "sitm_ddate01",
                 "name": "due_date",
                 "type": "date",
                 "required": false,
@@ -340,6 +369,7 @@
                 "max": ""
             },
             {
+                "id": "sitm_schd001",
                 "name": "scheduled_date",
                 "type": "date",
                 "required": false,
@@ -350,6 +380,7 @@
                 "max": ""
             },
             {
+                "id": "sitm_cmpd001",
                 "name": "completion_date",
                 "type": "date",
                 "required": false,
@@ -360,6 +391,7 @@
                 "max": ""
             },
             {
+                "id": "sitm_emins01",
                 "name": "estimated_minutes",
                 "type": "number",
                 "required": false,
@@ -371,6 +403,7 @@
                 "noDecimal": false
             },
             {
+                "id": "sitm_itype01",
                 "name": "item_type",
                 "type": "select",
                 "required": false,
@@ -391,6 +424,7 @@
                 ]
             },
             {
+                "id": "sitm_stat001",
                 "name": "status",
                 "type": "select",
                 "required": true,
@@ -408,6 +442,7 @@
                 ]
             },
             {
+                "id": "sitm_prio001",
                 "name": "priority",
                 "type": "select",
                 "required": false,
@@ -423,6 +458,7 @@
                 ]
             },
             {
+                "id": "sitm_area001",
                 "name": "area",
                 "type": "relation",
                 "required": false,
@@ -435,6 +471,7 @@
                 "maxSelect": 1
             },
             {
+                "id": "sitm_prog001",
                 "name": "program",
                 "type": "relation",
                 "required": false,
@@ -447,6 +484,7 @@
                 "maxSelect": 1
             },
             {
+                "id": "sitm_rsrc001",
                 "name": "resource",
                 "type": "relation",
                 "required": false,
@@ -459,6 +497,7 @@
                 "maxSelect": 1
             },
             {
+                "id": "sitm_owner01",
                 "name": "owner",
                 "type": "relation",
                 "required": true,
@@ -471,6 +510,7 @@
                 "maxSelect": 1
             },
             {
+                "id": "sitm_creat01",
                 "name": "created",
                 "type": "autodate",
                 "system": true,
@@ -480,6 +520,7 @@
                 "onUpdate": false
             },
             {
+                "id": "sitm_updat01",
                 "name": "updated",
                 "type": "autodate",
                 "system": true,
@@ -503,6 +544,7 @@
         "system": false,
         "fields": [
             {
+                "id": "ssess_sat001",
                 "name": "started_at",
                 "type": "date",
                 "required": false,
@@ -513,6 +555,7 @@
                 "max": ""
             },
             {
+                "id": "ssess_eat001",
                 "name": "ended_at",
                 "type": "date",
                 "required": false,
@@ -523,6 +566,7 @@
                 "max": ""
             },
             {
+                "id": "ssess_dmins1",
                 "name": "duration_minutes",
                 "type": "number",
                 "required": false,
@@ -534,6 +578,7 @@
                 "noDecimal": false
             },
             {
+                "id": "ssess_note01",
                 "name": "notes",
                 "type": "text",
                 "required": false,
@@ -542,6 +587,7 @@
                 "system": false
             },
             {
+                "id": "ssess_stype1",
                 "name": "session_type",
                 "type": "select",
                 "required": false,
@@ -559,6 +605,7 @@
                 ]
             },
             {
+                "id": "ssess_outc01",
                 "name": "outcome",
                 "type": "select",
                 "required": false,
@@ -574,6 +621,7 @@
                 ]
             },
             {
+                "id": "ssess_sitms1",
                 "name": "study_items",
                 "type": "relation",
                 "required": false,
@@ -586,6 +634,7 @@
                 "maxSelect": null
             },
             {
+                "id": "ssess_area01",
                 "name": "area",
                 "type": "relation",
                 "required": false,
@@ -598,6 +647,7 @@
                 "maxSelect": 1
             },
             {
+                "id": "ssess_owner1",
                 "name": "owner",
                 "type": "relation",
                 "required": true,
@@ -610,6 +660,7 @@
                 "maxSelect": 1
             },
             {
+                "id": "ssess_creat1",
                 "name": "created",
                 "type": "autodate",
                 "system": true,
@@ -619,6 +670,7 @@
                 "onUpdate": false
             },
             {
+                "id": "ssess_updat1",
                 "name": "updated",
                 "type": "autodate",
                 "system": true,
@@ -642,6 +694,7 @@
         "system": false,
         "fields": [
             {
+                "id": "ievt_notes01",
                 "name": "notes",
                 "type": "text",
                 "required": false,
@@ -650,6 +703,7 @@
                 "system": false
             },
             {
+                "id": "ievt_etype01",
                 "name": "event_type",
                 "type": "select",
                 "required": true,
@@ -669,6 +723,7 @@
                 ]
             },
             {
+                "id": "ievt_sitm001",
                 "name": "study_item",
                 "type": "relation",
                 "required": true,
@@ -681,6 +736,7 @@
                 "maxSelect": 1
             },
             {
+                "id": "ievt_owner01",
                 "name": "owner",
                 "type": "relation",
                 "required": true,
@@ -693,6 +749,7 @@
                 "maxSelect": 1
             },
             {
+                "id": "ievt_creat01",
                 "name": "created",
                 "type": "autodate",
                 "system": true,
@@ -702,6 +759,7 @@
                 "onUpdate": false
             },
             {
+                "id": "ievt_updat01",
                 "name": "updated",
                 "type": "autodate",
                 "system": true,
@@ -725,6 +783,7 @@
         "system": false,
         "fields": [
             {
+                "id": "uset_bwks001",
                 "name": "block_weeks",
                 "type": "number",
                 "required": true,
@@ -736,6 +795,7 @@
                 "noDecimal": false
             },
             {
+                "id": "uset_owner01",
                 "name": "owner",
                 "type": "relation",
                 "required": true,
@@ -748,6 +808,7 @@
                 "maxSelect": 1
             },
             {
+                "id": "uset_creat01",
                 "name": "created",
                 "type": "autodate",
                 "system": true,
@@ -757,6 +818,7 @@
                 "onUpdate": false
             },
             {
+                "id": "uset_updat01",
                 "name": "updated",
                 "type": "autodate",
                 "system": true,
