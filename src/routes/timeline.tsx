@@ -32,10 +32,10 @@ type RestWeekEntry = {
 
 type MixedEntry =
   | {
-    kind: "event" | "session";
-    timestamp: string;
-    data: ItemEvent | StudySession;
-  }
+      kind: "event" | "session";
+      timestamp: string;
+      data: ItemEvent | StudySession;
+    }
   | RestWeekEntry;
 
 export default function Timeline() {
@@ -266,16 +266,19 @@ export default function Timeline() {
                       <Badge colorPalette="blue" variant="subtle">
                         session
                       </Badge>
-                      {sess.expand?.study_item && (
-                        <AppLink
-                          to={`/study-items/${sess.study_item}`}
-                          fontWeight="medium"
-                          fontSize="sm"
-                          color="colorPalette.fg"
-                        >
-                          {sess.expand.study_item.title}
-                        </AppLink>
-                      )}
+                      {sess.expand?.study_items?.length
+                        ? sess.expand.study_items.map((it) => (
+                            <AppLink
+                              key={it.id}
+                              to={`/study-items/${it.id}`}
+                              fontWeight="medium"
+                              fontSize="sm"
+                              color="colorPalette.fg"
+                            >
+                              {it.title}
+                            </AppLink>
+                          ))
+                        : null}
                       {sess.outcome && (
                         <Badge variant="outline" fontSize="xs">
                           {sess.outcome}

@@ -25,3 +25,4 @@ dist-ssr
 /regula
 
 .env*
+pb_data

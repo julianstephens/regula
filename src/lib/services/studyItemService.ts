@@ -89,5 +89,7 @@ export async function deleteStudyItemsByProgram(
   const items = await pb
     .collection("study_items")
     .getFullList({ filter: `program = "${programId}"` });
-  await Promise.all(items.map((item) => pb.collection("study_items").delete(item.id)));
+  await Promise.all(
+    items.map((item) => pb.collection("study_items").delete(item.id)),
+  );
 }

@@ -13,7 +13,7 @@ export async function listSessions(
   filters: SessionFilters = {},
 ): Promise<StudySession[]> {
   const parts: string[] = [];
-  if (filters.studyItem) parts.push(`study_item = "${filters.studyItem}"`);
+  if (filters.studyItem) parts.push(`study_items ~ "${filters.studyItem}"`);
   if (filters.area) parts.push(`area = "${filters.area}"`);
   if (filters.dateFrom) parts.push(`started_at >= "${filters.dateFrom}"`);
   if (filters.dateTo) parts.push(`started_at <= "${filters.dateTo}"`);
@@ -22,26 +22,30 @@ export async function listSessions(
   return pb.collection("study_sessions").getFullList({
     sort: "-started_at",
     filter,
-    expand: "study_item,area",
+    expand: "study_items,area",
   }) as Promise<StudySession[]>;
 }
 
-export async function startSession(studyItemId: string): Promise<StudySession> {
-  // Auto-promote available items to in_progress
-  const item = (await pb
-    .collection("study_items")
-    .getOne(studyItemId)) as import("@/types/domain").StudyItem;
-  if (item.status === "available") {
-    await pb
+export async function startSession(
+  studyItemIds: string[],
+): Promise<StudySession> {
+  const { createEvent } = await import("./itemEventService");
+  let areaId = "";
+
+  for (const id of studyItemIds) {
+    const item = (await pb
       .collection("study_items")
-      .update(studyItemId, { status: "in_progress" });
-    const { createEvent } = await import("./itemEventService");
-    await createEvent(studyItemId, "started");
+      .getOne(id)) as import("@/types/domain").StudyItem;
+    if (!areaId) areaId = item.area;
+    if (item.status === "available") {
+      await pb.collection("study_items").update(id, { status: "in_progress" });
+      await createEvent(id, "started");
+    }
   }
 
   return pb.collection("study_sessions").create({
-    study_item: studyItemId,
-    area: item.area,
+    study_items: studyItemIds,
+    area: areaId,
     started_at: new Date().toISOString(),
     owner: pb.authStore.record!.id,
   }) as Promise<StudySession>;
@@ -69,7 +73,9 @@ export async function endSession(
   }) as Promise<StudySession>);
 
   if (outcome === "completed") {
-    await completeItem(session.study_item);
+    for (const itemId of session.study_items ?? []) {
+      await completeItem(itemId);
+    }
   }
 
   return updated;
@@ -83,8 +89,10 @@ export async function logSession(
     owner: pb.authStore.record!.id,
   }) as Promise<StudySession>);
 
-  if (data.outcome === "completed" && data.study_item) {
-    await completeItem(data.study_item);
+  if (data.outcome === "completed" && data.study_items?.length) {
+    for (const itemId of data.study_items) {
+      await completeItem(itemId);
+    }
   }
 
   return session;

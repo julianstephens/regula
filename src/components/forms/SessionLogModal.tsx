@@ -1,3 +1,4 @@
+import { StudyItemPicker } from "@/components/forms/StudyItemPicker";
 import type { SessionOutcome, SessionType, StudyItem } from "@/types/domain";
 import {
   Button,
@@ -15,8 +16,9 @@ interface Props {
   open: boolean;
   onClose: () => void;
   items: StudyItem[];
+  defaultStudyItemIds?: string[];
   onSubmit: (data: {
-    study_item: string;
+    study_items: string[];
     session_type: SessionType;
     outcome: SessionOutcome;
     started_at: string;
@@ -31,10 +33,13 @@ export function SessionLogModal({
   open,
   onClose,
   items,
+  defaultStudyItemIds,
   onSubmit,
   loading,
 }: Props) {
-  const [studyItem, setStudyItem] = useState("");
+  const [studyItems, setStudyItems] = useState<string[]>(
+    defaultStudyItemIds ?? [],
+  );
   const [sessionType, setSessionType] = useState<SessionType>("deep_work");
   const [outcome, setOutcome] = useState<SessionOutcome>("completed");
   const [startedAt, setStartedAt] = useState("");
@@ -50,7 +55,7 @@ export function SessionLogModal({
       Math.round((end.getTime() - start.getTime()) / 60_000),
     );
     void onSubmit({
-      study_item: studyItem,
+      study_items: studyItems,
       session_type: sessionType,
       outcome,
       started_at: start.toISOString(),
@@ -58,7 +63,7 @@ export function SessionLogModal({
       duration_minutes: durationMinutes,
       notes,
     }).then(() => {
-      setStudyItem("");
+      setStudyItems(defaultStudyItemIds ?? []);
       setNotes("");
       onClose();
     });
@@ -74,23 +79,16 @@ export function SessionLogModal({
           </Dialog.Header>
           <Dialog.Body as="form" id="log-session-form" onSubmit={handleSubmit}>
             <Stack gap={4}>
-              <Field.Root required>
-                <Field.Label>Study Item</Field.Label>
-                <NativeSelect.Root>
-                  <NativeSelect.Field
-                    value={studyItem}
-                    onChange={(e) => setStudyItem(e.target.value)}
-                  >
-                    <option value="">Select item…</option>
-                    {items.map((i) => (
-                      <option key={i.id} value={i.id}>
-                        {i.title}
-                      </option>
-                    ))}
-                  </NativeSelect.Field>
-                  <NativeSelect.Indicator />
-                </NativeSelect.Root>
-              </Field.Root>
+              {!defaultStudyItemIds?.length && (
+                <Field.Root required>
+                  <Field.Label>Study Items</Field.Label>
+                  <StudyItemPicker
+                    items={items}
+                    value={studyItems}
+                    onChange={setStudyItems}
+                  />
+                </Field.Root>
+              )}
               <HStack>
                 <Field.Root>
                   <Field.Label>Session Type</Field.Label>

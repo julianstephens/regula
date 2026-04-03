@@ -1,6 +1,7 @@
 export interface ParsedSession {
   index: number;
   title: string;
+  date?: string;
   reading?: string;
   inSession?: string;
   homework?: string;
@@ -93,10 +94,17 @@ function detectSpecial(
   return null;
 }
 
-type ColumnRole = "title" | "reading" | "inSession" | "homework" | "ignored";
+type ColumnRole =
+  | "title"
+  | "date"
+  | "reading"
+  | "inSession"
+  | "homework"
+  | "ignored";
 
 function detectColumnRole(header: string): ColumnRole {
   const h = header.toLowerCase();
+  if (h === "date" || h === "session date") return "date";
   if (
     h.includes("focus") ||
     h.includes("topic") ||
@@ -194,6 +202,7 @@ function parseTable(lines: string[]): ParsedTrack | null {
     sessions.push({
       index: idx++,
       title,
+      date: getCol("date"),
       reading: getCol("reading"),
       inSession: getCol("inSession"),
       homework: getCol("homework"),

@@ -1,6 +1,7 @@
 import pb from "@/lib/pocketbase";
 import Login from "@/routes/login";
 import Root from "@/routes/root";
+import Sessions from "@/routes/sessions";
 import { createBrowserRouter, redirect } from "react-router";
 
 const router = createBrowserRouter([
@@ -62,18 +63,12 @@ const router = createBrowserRouter([
       },
       {
         path: "sessions",
-        lazy: () =>
-          import("@/routes/sessions").then((m) => ({ Component: m.default })),
+        element: <Sessions />,
       },
       {
         path: "timeline",
         lazy: () =>
           import("@/routes/timeline").then((m) => ({ Component: m.default })),
-      },
-      {
-        path: "reports",
-        lazy: () =>
-          import("@/routes/reports").then((m) => ({ Component: m.default })),
       },
       {
         path: "settings",

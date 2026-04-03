@@ -5,7 +5,7 @@ const statusConfig: Record<
   ItemStatus,
   { label: string; colorPalette: string }
 > = {
-  planned: { label: "Planned", colorPalette: "gray" },
+  planned: { label: "Planned", colorPalette: "teal" },
   available: { label: "Available", colorPalette: "blue" },
   in_progress: { label: "In Progress", colorPalette: "orange" },
   completed: { label: "Completed", colorPalette: "green" },
@@ -16,7 +16,7 @@ const statusConfig: Record<
 export function StatusBadge({ status }: { status: ItemStatus }) {
   const config = statusConfig[status] ?? {
     label: status,
-    colorPalette: "gray",
+    colorPalette: "teal",
   };
   return (
     <Badge colorPalette={config.colorPalette} variant="subtle">

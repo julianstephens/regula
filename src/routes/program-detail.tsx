@@ -10,19 +10,22 @@ import {
 } from "@/lib/services/programService";
 import { getSettings } from "@/lib/services/settingsService";
 import { listStudyItems } from "@/lib/services/studyItemService";
-import type { Program, StudyItem } from "@/types/domain";
+import type { ItemStatus, Program, StudyItem } from "@/types/domain";
 import {
   Badge,
   Box,
   Button,
+  Dialog,
   Field,
   Flex,
+  Grid,
   Heading,
   HStack,
   Input,
   NativeSelect,
   Stack,
   Table,
+  Tabs,
   Text,
   Textarea,
 } from "@chakra-ui/react";
@@ -31,11 +34,20 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
 const statusColor: Record<string, string> = {
-  planned: "gray",
+  planned: "teal",
   active: "green",
   completed: "blue",
   archived: "orange",
 };
+
+const STATUS_ORDER: ItemStatus[] = [
+  "in_progress",
+  "available",
+  "planned",
+  "completed",
+  "deferred",
+  "cancelled",
+];
 
 export default function ProgramDetail() {
   const { id } = useParams<{ id: string }>();
@@ -63,6 +75,12 @@ export default function ProgramDetail() {
     enabled: !!id,
   });
 
+  const { data: studyItems = [] } = useQuery<StudyItem[]>({
+    queryKey: ["study_items", { program: id }],
+    queryFn: () => listStudyItems({ program: id }),
+    enabled: !!id,
+  });
+
   const updateMut = useMutation({
     mutationFn: (data: Partial<Program>) => updateProgram(id!, data),
     onSuccess: () => {
@@ -80,12 +98,11 @@ export default function ProgramDetail() {
     },
   });
 
-  // Fetch assessments (quiz + exam items) for term programs across all child blocks
+  // Assessments: quiz + exam items across this program and child blocks (term only)
   const { data: rawAssessments = [] } = useQuery<StudyItem[]>({
     queryKey: ["study_items", "assessments", id],
     queryFn: async () => {
       if (!program) return [];
-      // Collect all program ids to check: this program + all direct block children
       const childIds = (
         (program.expand?.["programs(parent)"] ?? []) as Program[]
       ).map((c) => c.id);
@@ -123,7 +140,7 @@ export default function ProgramDetail() {
     ? Number(blockWeeksInput)
     : globalDefault;
   const computedEndDate =
-    program?.type === "block" && startDate
+    program.type === "block" && startDate
       ? computeBlockEndDate(new Date(startDate), resolvedBlockWeeks)
       : null;
 
@@ -135,7 +152,7 @@ export default function ProgramDetail() {
       description,
       start_date: startDate || undefined,
     };
-    if (program?.type === "block") {
+    if (program.type === "block") {
       data.end_date = computedEndDate?.toISOString();
       data.block_weeks = blockWeeksInput ? Number(blockWeeksInput) : undefined;
     } else {
@@ -144,38 +161,220 @@ export default function ProgramDetail() {
     void updateMut.mutateAsync(data);
   };
 
+  // Stats derived from direct study items
+  const total = studyItems.length;
+  const completed = studyItems.filter((i) => i.status === "completed").length;
+  const inProgress = studyItems.filter(
+    (i) => i.status === "in_progress",
+  ).length;
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  const sortedItems = [...studyItems].sort((a, b) => {
+    const ai = STATUS_ORDER.indexOf(a.status);
+    const bi = STATUS_ORDER.indexOf(b.status);
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+
   return (
     <Stack gap={6}>
-      <Flex justify="space-between" align="center">
-        <HStack>
-          <AppLink to="/programs" color="fg.muted" fontSize="sm">
+      {/* Header */}
+      <Flex justify="space-between" align="start" flexWrap="wrap" gap={3}>
+        <Stack gap={1}>
+          <AppLink
+            alignSelf="flex-start"
+            mb="6"
+            to="/programs"
+            color="fg.muted"
+            fontSize="sm"
+          >
             ← Programs
           </AppLink>
-          <Heading size="lg">{program.name}</Heading>
-          <Badge
-            colorPalette={statusColor[program.status] ?? "gray"}
-            variant="subtle"
+          <HStack flexWrap="wrap" gap={2}>
+            <Heading size="lg">{program.name}</Heading>
+            <Badge
+              colorPalette={statusColor[program.status] ?? "teal"}
+              variant="subtle"
+            >
+              {program.status}
+            </Badge>
+            <Badge variant="outline">{program.type}</Badge>
+          </HStack>
+        </Stack>
+        <HStack gap={2} flexWrap="wrap">
+          {program.type === "term" && (
+            <AppLink to={`/programs/${id}/import`}>
+              <Button size="sm" variant="outline">
+                Import Syllabi
+              </Button>
+            </AppLink>
+          )}
+          <Button size="sm" variant="outline" onClick={startEdit}>
+            Edit
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            colorPalette="red"
+            onClick={() => setConfirmDelete(true)}
           >
-            {program.status}
-          </Badge>
-          <Badge variant="outline">{program.type}</Badge>
+            Delete
+          </Button>
         </HStack>
-        {!editing && (
-          <HStack gap={2}>
-            {program.type === "term" && (
-              <AppLink to={`/programs/${id}/import`}>
-                <Button size="sm" variant="outline">
-                  Import Syllabi
-                </Button>
-              </AppLink>
-            )}
-            <Button size="sm" onClick={startEdit}>
-              Edit
-            </Button>
-            {confirmDelete ? (
-              <HStack gap={1}>
+      </Flex>
+
+      {/* Edit dialog */}
+      <Dialog.Root
+        open={editing}
+        onOpenChange={({ open: o }) => !o && setEditing(false)}
+        size="lg"
+      >
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Header>
+              <Dialog.Title>Edit Program</Dialog.Title>
+            </Dialog.Header>
+            <Dialog.Body
+              as="form"
+              id="edit-program-form"
+              onSubmit={handleSubmit}
+            >
+              <Stack gap={3}>
+                <Field.Root required>
+                  <Field.Label>Name</Field.Label>
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </Field.Root>
+                <Stack direction="row" gap={3} flexWrap="wrap">
+                  <Field.Root>
+                    <Field.Label>Status</Field.Label>
+                    <NativeSelect.Root>
+                      <NativeSelect.Field
+                        value={status}
+                        onChange={(e) =>
+                          setStatus(e.target.value as Program["status"])
+                        }
+                      >
+                        {(
+                          [
+                            "planned",
+                            "active",
+                            "completed",
+                            "archived",
+                          ] as const
+                        ).map((v) => (
+                          <option key={v} value={v}>
+                            {v}
+                          </option>
+                        ))}
+                      </NativeSelect.Field>
+                      <NativeSelect.Indicator />
+                    </NativeSelect.Root>
+                  </Field.Root>
+                  <Field.Root>
+                    <Field.Label>Start Date</Field.Label>
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                    />
+                  </Field.Root>
+                  {program.type === "block" ? (
+                    <>
+                      <Field.Root>
+                        <Field.Label>Block Weeks (override)</Field.Label>
+                        <Field.HelperText>
+                          Default: {globalDefault}
+                        </Field.HelperText>
+                        <Input
+                          type="number"
+                          min={2}
+                          max={6}
+                          step={1}
+                          placeholder={String(globalDefault)}
+                          value={blockWeeksInput}
+                          onChange={(e) => setBlockWeeksInput(e.target.value)}
+                          maxW="80px"
+                        />
+                      </Field.Root>
+                      <Field.Root>
+                        <Field.Label>End Date (computed)</Field.Label>
+                        <Text pt={2} fontSize="sm" color="fg.muted">
+                          {computedEndDate
+                            ? computedEndDate.toLocaleDateString(undefined, {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })
+                            : "—"}
+                        </Text>
+                      </Field.Root>
+                    </>
+                  ) : (
+                    <Field.Root>
+                      <Field.Label>End Date</Field.Label>
+                      <Input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                      />
+                    </Field.Root>
+                  )}
+                </Stack>
+                <Field.Root>
+                  <Field.Label>Description</Field.Label>
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={2}
+                  />
+                </Field.Root>
+              </Stack>
+            </Dialog.Body>
+            <Dialog.Footer>
+              <Button variant="ghost" onClick={() => setEditing(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="edit-program-form"
+                loading={updateMut.isPending}
+              >
+                Save
+              </Button>
+            </Dialog.Footer>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Dialog.Root>
+
+      {/* Delete confirm dialog */}
+      <Dialog.Root
+        open={confirmDelete}
+        onOpenChange={({ open: o }) => {
+          if (!o) {
+            setConfirmDelete(false);
+            setDeleteChildren(false);
+          }
+        }}
+      >
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Header>
+              <Dialog.Title>Delete Program</Dialog.Title>
+            </Dialog.Header>
+            <Dialog.Body>
+              <Stack gap={3}>
+                <Text>
+                  Are you sure you want to delete{" "}
+                  <strong>{program.name}</strong>? All study items assigned to
+                  it will also be deleted.
+                </Text>
                 {children.length > 0 && (
-                  <HStack gap={1} mr={1}>
+                  <HStack gap={2}>
                     <input
                       type="checkbox"
                       id="delete-children"
@@ -187,307 +386,362 @@ export default function ProgramDetail() {
                       style={{ fontSize: "0.875rem", cursor: "pointer" }}
                     >
                       Also delete {children.length} sub-program
-                      {children.length !== 1 ? "s" : ""}
+                      {children.length !== 1 ? "s" : ""} and their items
                     </label>
                   </HStack>
                 )}
-                <Button
-                  size="sm"
-                  colorPalette="red"
-                  loading={deleteMut.isPending}
-                  onClick={() => deleteMut.mutate()}
-                >
-                  Confirm Delete
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    setConfirmDelete(false);
-                    setDeleteChildren(false);
-                  }}
-                >
-                  Cancel
-                </Button>
-              </HStack>
-            ) : (
+              </Stack>
+            </Dialog.Body>
+            <Dialog.Footer>
               <Button
-                size="sm"
                 variant="ghost"
-                colorPalette="red"
-                onClick={() => setConfirmDelete(true)}
-              >
-                Delete
-              </Button>
-            )}
-          </HStack>
-        )}
-      </Flex>
-
-      {editing && (
-        <Box
-          as="form"
-          onSubmit={handleSubmit}
-          p={4}
-          borderWidth={1}
-          borderRadius="md"
-          bg="bg.subtle"
-        >
-          <Stack gap={3}>
-            <Field.Root required>
-              <Field.Label>Name</Field.Label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </Field.Root>
-            <Stack direction="row" gap={3}>
-              <Field.Root>
-                <Field.Label>Status</Field.Label>
-                <NativeSelect.Root>
-                  <NativeSelect.Field
-                    value={status}
-                    onChange={(e) =>
-                      setStatus(e.target.value as Program["status"])
-                    }
-                  >
-                    {(
-                      ["planned", "active", "completed", "archived"] as const
-                    ).map((v) => (
-                      <option key={v} value={v}>
-                        {v}
-                      </option>
-                    ))}
-                  </NativeSelect.Field>
-                  <NativeSelect.Indicator />
-                </NativeSelect.Root>
-              </Field.Root>
-              <Field.Root>
-                <Field.Label>Start Date</Field.Label>
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-              </Field.Root>
-              {program?.type === "block" ? (
-                <>
-                  <Field.Root>
-                    <Field.Label>Block Weeks (override)</Field.Label>
-                    <Field.HelperText>
-                      Default: {globalDefault}
-                    </Field.HelperText>
-                    <Input
-                      type="number"
-                      min={2}
-                      max={6}
-                      step={1}
-                      placeholder={String(globalDefault)}
-                      value={blockWeeksInput}
-                      onChange={(e) => setBlockWeeksInput(e.target.value)}
-                      maxW="80px"
-                    />
-                  </Field.Root>
-                  <Field.Root>
-                    <Field.Label>End Date (computed)</Field.Label>
-                    <Text pt={2} fontSize="sm" color="fg.muted">
-                      {computedEndDate
-                        ? computedEndDate.toLocaleDateString(undefined, {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })
-                        : "—"}
-                    </Text>
-                  </Field.Root>
-                </>
-              ) : (
-                <Field.Root>
-                  <Field.Label>End Date</Field.Label>
-                  <Input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                </Field.Root>
-              )}
-            </Stack>
-            <Field.Root>
-              <Field.Label>Description</Field.Label>
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={2}
-              />
-            </Field.Root>
-            <HStack>
-              <Button type="submit" size="sm" loading={updateMut.isPending}>
-                Save
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setEditing(false)}
+                onClick={() => {
+                  setConfirmDelete(false);
+                  setDeleteChildren(false);
+                }}
               >
                 Cancel
               </Button>
-            </HStack>
+              <Button
+                colorPalette="red"
+                loading={deleteMut.isPending}
+                onClick={() => deleteMut.mutate()}
+              >
+                Delete
+              </Button>
+            </Dialog.Footer>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Dialog.Root>
+
+      {/* Tabbed content */}
+      <Tabs.Root defaultValue="overview" variant="line">
+        <Tabs.List>
+          <Tabs.Trigger value="overview">Overview</Tabs.Trigger>
+          <Tabs.Trigger value="items">
+            Study Items
+            {total > 0 && (
+              <Badge ml={2} variant="subtle" colorPalette="gray" size="sm">
+                {total}
+              </Badge>
+            )}
+          </Tabs.Trigger>
+          {children.length > 0 && (
+            <Tabs.Trigger value="subprograms">
+              Sub-programs
+              <Badge ml={2} variant="subtle" colorPalette="gray" size="sm">
+                {children.length}
+              </Badge>
+            </Tabs.Trigger>
+          )}
+          {program.type === "term" && (
+            <Tabs.Trigger value="assessments">
+              Assessments
+              {assessments.length > 0 && (
+                <Badge ml={2} variant="subtle" colorPalette="gray" size="sm">
+                  {assessments.length}
+                </Badge>
+              )}
+            </Tabs.Trigger>
+          )}
+        </Tabs.List>
+
+        {/* Overview */}
+        <Tabs.Content value="overview">
+          <Stack gap={4} pt={4}>
+            <Grid
+              templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }}
+              gap={4}
+              p={4}
+              borderWidth={1}
+              borderRadius="md"
+              bg="bg.subtle"
+            >
+              <Box>
+                <Text fontSize="xs" color="fg.subtle" mb={1}>
+                  Type
+                </Text>
+                <Text fontWeight="medium">{program.type}</Text>
+              </Box>
+              <Box>
+                <Text fontSize="xs" color="fg.subtle" mb={1}>
+                  Status
+                </Text>
+                <Text fontWeight="medium">{program.status}</Text>
+              </Box>
+              <Box>
+                <Text fontSize="xs" color="fg.subtle" mb={1}>
+                  Start Date
+                </Text>
+                <Text fontWeight="medium">
+                  {formatDate(program.start_date)}
+                </Text>
+              </Box>
+              <Box>
+                <Text fontSize="xs" color="fg.subtle" mb={1}>
+                  End Date
+                </Text>
+                <Text fontWeight="medium">{formatDate(program.end_date)}</Text>
+              </Box>
+              {program.type === "block" && (
+                <Box>
+                  <Text fontSize="xs" color="fg.subtle" mb={1}>
+                    Block Weeks
+                  </Text>
+                  <Text fontWeight="medium">
+                    {program.block_weeks ?? globalDefault}
+                  </Text>
+                </Box>
+              )}
+              {program.expand?.parent && (
+                <Box>
+                  <Text fontSize="xs" color="fg.subtle" mb={1}>
+                    Parent Program
+                  </Text>
+                  <AppLink
+                    to={`/programs/${program.expand.parent.id}`}
+                    fontWeight="medium"
+                    color="colorPalette.fg"
+                  >
+                    {program.expand.parent.name}
+                  </AppLink>
+                </Box>
+              )}
+            </Grid>
+
+            {program.description && (
+              <Box p={4} borderWidth={1} borderRadius="md" bg="bg.subtle">
+                <Text fontSize="xs" color="fg.subtle" mb={2}>
+                  Description
+                </Text>
+                <Text whiteSpace="pre-wrap">{program.description}</Text>
+              </Box>
+            )}
+
+            {total > 0 && (
+              <Grid
+                templateColumns="repeat(4, 1fr)"
+                gap={4}
+                p={4}
+                borderWidth={1}
+                borderRadius="md"
+                bg="bg.subtle"
+              >
+                <Box textAlign="center">
+                  <Text fontSize="2xl" fontWeight="bold">
+                    {total}
+                  </Text>
+                  <Text fontSize="xs" color="fg.subtle">
+                    Total Items
+                  </Text>
+                </Box>
+                <Box textAlign="center">
+                  <Text fontSize="2xl" fontWeight="bold" color="orange.fg">
+                    {inProgress}
+                  </Text>
+                  <Text fontSize="xs" color="fg.subtle">
+                    In Progress
+                  </Text>
+                </Box>
+                <Box textAlign="center">
+                  <Text fontSize="2xl" fontWeight="bold" color="green.fg">
+                    {completed}
+                  </Text>
+                  <Text fontSize="xs" color="fg.subtle">
+                    Completed
+                  </Text>
+                </Box>
+                <Box textAlign="center">
+                  <Text fontSize="2xl" fontWeight="bold" color="blue.fg">
+                    {pct}%
+                  </Text>
+                  <Text fontSize="xs" color="fg.subtle">
+                    Done
+                  </Text>
+                </Box>
+              </Grid>
+            )}
           </Stack>
-        </Box>
-      )}
+        </Tabs.Content>
 
-      {program.description && (
-        <Text color="fg.muted">{program.description}</Text>
-      )}
-
-      {program.type === "block" && !editing && (
-        <HStack gap={4} fontSize="sm" color="fg.muted">
-          {program.start_date && (
-            <Text>
-              Start:{" "}
-              <strong>
-                {new Date(program.start_date).toLocaleDateString(undefined, {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                })}
-              </strong>
-            </Text>
-          )}
-          {program.end_date && (
-            <Text>
-              End:{" "}
-              <strong>
-                {new Date(program.end_date).toLocaleDateString(undefined, {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                })}
-              </strong>
-            </Text>
-          )}
-          <Text>
-            Duration:{" "}
-            <strong>{program.block_weeks ?? globalDefault} weeks</strong> + 1
-            rest week
-          </Text>
-        </HStack>
-      )}
-
-      {program.type !== "block" &&
-        !editing &&
-        (program.start_date || program.end_date) && (
-          <HStack gap={4} fontSize="sm" color="fg.muted">
-            {program.start_date && (
-              <Text>
-                Start:{" "}
-                <strong>
-                  {new Date(program.start_date).toLocaleDateString(undefined, {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </strong>
-              </Text>
+        {/* Study Items */}
+        <Tabs.Content value="items">
+          <Stack gap={3} pt={4}>
+            {sortedItems.length === 0 ? (
+              <Box
+                p={8}
+                textAlign="center"
+                borderWidth={1}
+                borderRadius="md"
+                borderStyle="dashed"
+              >
+                <Text color="fg.muted">
+                  No study items assigned to this program yet.
+                </Text>
+              </Box>
+            ) : (
+              <Table.Root variant="outline">
+                <Table.Header>
+                  <Table.Row>
+                    <Table.ColumnHeader>Title</Table.ColumnHeader>
+                    <Table.ColumnHeader>Type</Table.ColumnHeader>
+                    <Table.ColumnHeader>Priority</Table.ColumnHeader>
+                    <Table.ColumnHeader>Due</Table.ColumnHeader>
+                    <Table.ColumnHeader>Status</Table.ColumnHeader>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                  {sortedItems.map((item) => (
+                    <Table.Row key={item.id}>
+                      <Table.Cell>
+                        <AppLink
+                          to={`/study-items/${item.id}`}
+                          color="colorPalette.fg"
+                          fontWeight="medium"
+                        >
+                          {item.title}
+                        </AppLink>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Badge variant="subtle">{item.item_type || "—"}</Badge>
+                      </Table.Cell>
+                      <Table.Cell>
+                        {item.priority !== "normal" ? (
+                          <Badge
+                            variant="outline"
+                            colorPalette={
+                              item.priority === "critical"
+                                ? "red"
+                                : item.priority === "high"
+                                  ? "orange"
+                                  : "gray"
+                            }
+                          >
+                            {item.priority}
+                          </Badge>
+                        ) : (
+                          <Text color="fg.subtle">—</Text>
+                        )}
+                      </Table.Cell>
+                      <Table.Cell>{formatDate(item.due_date)}</Table.Cell>
+                      <Table.Cell>
+                        <StatusBadge status={item.status} />
+                      </Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table.Root>
             )}
-            {program.end_date && (
-              <Text>
-                End:{" "}
-                <strong>
-                  {new Date(program.end_date).toLocaleDateString(undefined, {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </strong>
-              </Text>
-            )}
-          </HStack>
+          </Stack>
+        </Tabs.Content>
+
+        {/* Sub-programs */}
+        {children.length > 0 && (
+          <Tabs.Content value="subprograms">
+            <Stack gap={3} pt={4}>
+              <Table.Root variant="outline">
+                <Table.Header>
+                  <Table.Row>
+                    <Table.ColumnHeader>Name</Table.ColumnHeader>
+                    <Table.ColumnHeader>Type</Table.ColumnHeader>
+                    <Table.ColumnHeader>Status</Table.ColumnHeader>
+                    <Table.ColumnHeader>Start</Table.ColumnHeader>
+                    <Table.ColumnHeader>End</Table.ColumnHeader>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                  {children.map((child) => (
+                    <Table.Row key={child.id}>
+                      <Table.Cell>
+                        <AppLink
+                          to={`/programs/${child.id}`}
+                          color="colorPalette.fg"
+                          fontWeight="medium"
+                        >
+                          {child.name}
+                        </AppLink>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Badge variant="subtle">{child.type}</Badge>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Badge
+                          colorPalette={statusColor[child.status] ?? "gray"}
+                          variant="subtle"
+                        >
+                          {child.status}
+                        </Badge>
+                      </Table.Cell>
+                      <Table.Cell>{formatDate(child.start_date)}</Table.Cell>
+                      <Table.Cell>{formatDate(child.end_date)}</Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table.Root>
+            </Stack>
+          </Tabs.Content>
         )}
 
-      {children.length > 0 && (
-        <Stack gap={3}>
-          <Heading size="md">Sub-programs</Heading>
-          <Table.Root variant="outline">
-            <Table.Header>
-              <Table.Row>
-                <Table.ColumnHeader>Name</Table.ColumnHeader>
-                <Table.ColumnHeader>Type</Table.ColumnHeader>
-                <Table.ColumnHeader>Status</Table.ColumnHeader>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {children.map((child) => (
-                <Table.Row key={child.id}>
-                  <Table.Cell>
-                    <AppLink
-                      to={`/programs/${child.id}`}
-                      color="colorPalette.fg"
-                      fontWeight="medium"
-                    >
-                      {child.name}
-                    </AppLink>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Badge variant="subtle">{child.type}</Badge>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Badge
-                      colorPalette={statusColor[child.status] ?? "gray"}
-                      variant="subtle"
-                    >
-                      {child.status}
-                    </Badge>
-                  </Table.Cell>
-                </Table.Row>
-              ))}
-            </Table.Body>
-          </Table.Root>
-        </Stack>
-      )}
-
-      {program.type === "term" && assessments.length > 0 && (
-        <Stack gap={3}>
-          <Heading size="md">Assessments</Heading>
-          <Table.Root variant="outline">
-            <Table.Header>
-              <Table.Row>
-                <Table.ColumnHeader>Title</Table.ColumnHeader>
-                <Table.ColumnHeader>Type</Table.ColumnHeader>
-                <Table.ColumnHeader>Area</Table.ColumnHeader>
-                <Table.ColumnHeader>Due</Table.ColumnHeader>
-                <Table.ColumnHeader>Status</Table.ColumnHeader>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {assessments.map((item) => (
-                <Table.Row key={item.id}>
-                  <Table.Cell>
-                    <AppLink
-                      to={`/study-items/${item.id}`}
-                      color="colorPalette.fg"
-                      fontWeight="medium"
-                    >
-                      {item.title}
-                    </AppLink>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Badge variant="subtle">
-                      {item.item_type === "quiz" ? "Midterm" : "Final Exam"}
-                    </Badge>
-                  </Table.Cell>
-                  <Table.Cell>{item.expand?.area?.name ?? "—"}</Table.Cell>
-                  <Table.Cell>{formatDate(item.due_date)}</Table.Cell>
-                  <Table.Cell>
-                    <StatusBadge status={item.status} />
-                  </Table.Cell>
-                </Table.Row>
-              ))}
-            </Table.Body>
-          </Table.Root>
-        </Stack>
-      )}
+        {/* Assessments (term programs only) */}
+        {program.type === "term" && (
+          <Tabs.Content value="assessments">
+            <Stack gap={3} pt={4}>
+              {assessments.length === 0 ? (
+                <Box
+                  p={8}
+                  textAlign="center"
+                  borderWidth={1}
+                  borderRadius="md"
+                  borderStyle="dashed"
+                >
+                  <Text color="fg.muted">No assessments found.</Text>
+                </Box>
+              ) : (
+                <Table.Root variant="outline">
+                  <Table.Header>
+                    <Table.Row>
+                      <Table.ColumnHeader>Title</Table.ColumnHeader>
+                      <Table.ColumnHeader>Type</Table.ColumnHeader>
+                      <Table.ColumnHeader>Area</Table.ColumnHeader>
+                      <Table.ColumnHeader>Due</Table.ColumnHeader>
+                      <Table.ColumnHeader>Status</Table.ColumnHeader>
+                    </Table.Row>
+                  </Table.Header>
+                  <Table.Body>
+                    {assessments.map((item) => (
+                      <Table.Row key={item.id}>
+                        <Table.Cell>
+                          <AppLink
+                            to={`/study-items/${item.id}`}
+                            color="colorPalette.fg"
+                            fontWeight="medium"
+                          >
+                            {item.title}
+                          </AppLink>
+                        </Table.Cell>
+                        <Table.Cell>
+                          <Badge variant="subtle">
+                            {item.item_type === "quiz"
+                              ? "Midterm"
+                              : "Final Exam"}
+                          </Badge>
+                        </Table.Cell>
+                        <Table.Cell>
+                          {item.expand?.area?.name ?? "—"}
+                        </Table.Cell>
+                        <Table.Cell>{formatDate(item.due_date)}</Table.Cell>
+                        <Table.Cell>
+                          <StatusBadge status={item.status} />
+                        </Table.Cell>
+                      </Table.Row>
+                    ))}
+                  </Table.Body>
+                </Table.Root>
+              )}
+            </Stack>
+          </Tabs.Content>
+        )}
+      </Tabs.Root>
     </Stack>
   );
 }

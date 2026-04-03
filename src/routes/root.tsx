@@ -19,7 +19,6 @@ const navItems = [
   { label: "Study Items", to: "/study-items" },
   { label: "Sessions", to: "/sessions" },
   { label: "Timeline", to: "/timeline" },
-  { label: "Reports", to: "/reports" },
   { label: "Settings", to: "/settings" },
 ];
 

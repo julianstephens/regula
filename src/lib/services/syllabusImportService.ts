@@ -1,6 +1,7 @@
 import { computeBlockEndDate } from "@/lib/blocks";
 import { toISODateString } from "@/lib/dates";
 import { createProgram, listPrograms } from "@/lib/services/programService";
+import { listResources } from "@/lib/services/resourceService";
 import { createStudyItem } from "@/lib/services/studyItemService";
 import type { ParsedSyllabus } from "@/lib/syllabusParser";
 import type { Program } from "@/types/domain";
@@ -117,6 +118,43 @@ export async function importSyllabi(
 
   let itemsCreated = 0;
 
+  // Pre-load all resources and index by "areaId::title" for fast lookup
+  const allResources = await listResources();
+  const resourceIndex = new Map<string, string>();
+  // Also track how many resources exist per area
+  const resourcesByArea = new Map<string, string[]>();
+  for (const r of allResources) {
+    if (r.area && r.title) {
+      resourceIndex.set(`${r.area}::${r.title.toLowerCase()}`, r.id);
+      const list = resourcesByArea.get(r.area) ?? [];
+      list.push(r.id);
+      resourcesByArea.set(r.area, list);
+    }
+  }
+
+  // Parse a date string like "Apr 5" or "Jun 21" relative to the term start year
+  function parseSessionDate(raw: string): Date | null {
+    const cleaned = raw.trim();
+    if (!cleaned || cleaned === "—") return null;
+    const d = new Date(`${cleaned} ${termStart.getFullYear()}`);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function resolveResource(
+    reading: string | undefined,
+    areaId: string,
+  ): string | undefined {
+    // If a reading title is given, try an exact match first
+    if (reading) {
+      const match = resourceIndex.get(`${areaId}::${reading.toLowerCase()}`);
+      if (match) return match;
+    }
+    // Fall back: if the area has exactly one resource, always use it
+    const areaResources = resourcesByArea.get(areaId);
+    if (areaResources?.length === 1) return areaResources[0];
+    return undefined;
+  }
+
   for (const syllabus of syllabi) {
     const areaId = areaMatches[syllabus.area];
     if (!areaId) continue; // user chose to skip this area
@@ -130,14 +168,20 @@ export async function importSyllabi(
     for (const track of syllabus.tracks) {
       for (let i = 0; i < track.sessions.length; i++) {
         const session = track.sessions[i];
-        const dueDate = i < meetingDates.length ? meetingDates[i] : null;
+        // Prefer the explicit date from the table; fall back to index-based meeting date
+        const dueDate =
+          (session.date ? parseSessionDate(session.date) : null) ??
+          (i < meetingDates.length ? meetingDates[i] : null);
         const block = findBlock(dueDate);
 
         const notesParts: string[] = [];
-        if (session.reading) notesParts.push(`Reading: ${session.reading}`);
         if (session.inSession)
           notesParts.push(`In-session: ${session.inSession}`);
         const notes = notesParts.join("\n");
+
+        const resourceId = !session.isSpecial
+          ? resolveResource(session.reading, areaId)
+          : undefined;
 
         await createStudyItem({
           title: session.title,
@@ -148,6 +192,7 @@ export async function importSyllabi(
           area: areaId,
           program: block?.id ?? term.id,
           due_date: dueDate ? toISODateString(dueDate) : undefined,
+          resource: resourceId,
         });
         itemsCreated++;
 
@@ -159,6 +204,7 @@ export async function importSyllabi(
             area: areaId,
             program: block?.id ?? term.id,
             due_date: dueDate ? toISODateString(dueDate) : undefined,
+            resource: resourceId,
           });
           itemsCreated++;
         }
@@ -166,5 +212,8 @@ export async function importSyllabi(
     }
   }
 
-  return { blocksCreated: blockPrograms.length, itemsCreated };
+  return {
+    blocksCreated: blockPrograms.length,
+    itemsCreated,
+  };
 }

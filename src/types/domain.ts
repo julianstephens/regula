@@ -95,7 +95,10 @@ export interface Resource {
   owner: string;
   created: string;
   updated: string;
-  expand?: { area?: Area };
+  expand?: {
+    area?: Area;
+    "study_items(resource)"?: StudyItem[];
+  };
 }
 
 export interface StudyItem {
@@ -124,7 +127,7 @@ export interface StudyItem {
 
 export interface StudySession {
   id: string;
-  study_item: string;
+  study_items: string[];
   session_type: SessionType;
   outcome: SessionOutcome;
   started_at: string;
@@ -136,7 +139,7 @@ export interface StudySession {
   created: string;
   updated: string;
   expand?: {
-    study_item?: StudyItem;
+    study_items?: StudyItem[];
     area?: Area;
   };
 }

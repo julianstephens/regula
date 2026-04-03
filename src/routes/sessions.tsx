@@ -1,5 +1,6 @@
 import { SessionTimer } from "@/components/feedback/SessionTimer";
 import { SessionLogModal } from "@/components/forms/SessionLogModal";
+import { StudyItemPicker } from "@/components/forms/StudyItemPicker";
 import { endOfDay, formatDate, startOfDay } from "@/lib/dates";
 import { formatMinutes } from "@/lib/format";
 import { listStudyItems } from "@/lib/services/studyItemService";
@@ -32,7 +33,7 @@ export default function Sessions() {
   const qc = useQueryClient();
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [activeStartedAt, setActiveStartedAt] = useState<Date | null>(null);
-  const [selectedItemId, setSelectedItemId] = useState("");
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
   const [outcome, setOutcome] = useState<SessionOutcome>("completed");
   const [logModalOpen, setLogModalOpen] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>("today");
@@ -55,13 +56,9 @@ export default function Sessions() {
     queryKey: ["study_sessions", dateFilter],
     queryFn: () => listSessions(getFilters()),
   });
-  const { data: items = [] } = useQuery<StudyItem[]>({
-    queryKey: ["study_items", "active"],
-    queryFn: () => listStudyItems({ status: "available" }),
-  });
-  const { data: inProgressItems = [] } = useQuery<StudyItem[]>({
-    queryKey: ["study_items", "in_progress"],
-    queryFn: () => listStudyItems({ status: "in_progress" }),
+  const { data: allItems = [] } = useQuery<StudyItem[]>({
+    queryKey: ["study_items", "all"],
+    queryFn: () => listStudyItems(),
   });
 
   const startMut = useMutation({
@@ -70,6 +67,7 @@ export default function Sessions() {
       setActiveSessionId(session.id);
       setActiveStartedAt(new Date());
       void qc.invalidateQueries({ queryKey: ["study_items"] });
+      setSelectedItemIds([]);
     },
   });
   const endMut = useMutation({
@@ -96,7 +94,9 @@ export default function Sessions() {
     },
   });
 
-  const allActiveItems = [...items, ...inProgressItems];
+  const allActiveItems = allItems.filter((i) =>
+    ["planned", "available", "in_progress"].includes(i.status),
+  );
 
   return (
     <Stack gap={6}>
@@ -143,36 +143,31 @@ export default function Sessions() {
           </HStack>
         </Box>
       ) : (
-        <Box p={4} borderWidth={1} borderRadius="md" bg="bg.subtle">
+        <Box w="full" p={4} borderWidth={1} borderRadius="md" bg="bg.subtle">
           <Text fontWeight="medium" mb={3}>
             Start New Session
           </Text>
-          <HStack>
-            <Field.Root flex={1}>
-              <NativeSelect.Root>
-                <NativeSelect.Field
-                  value={selectedItemId}
-                  onChange={(e) => setSelectedItemId(e.target.value)}
-                >
-                  <option value="">Select a study item…</option>
-                  {allActiveItems.map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.title} ({i.status.replace(/_/g, " ")})
-                    </option>
-                  ))}
-                </NativeSelect.Field>
-                <NativeSelect.Indicator />
-              </NativeSelect.Root>
+          <Stack w="full" gap={3}>
+            <Field.Root>
+              <Field.Label fontSize="sm">Study Items</Field.Label>
+              <StudyItemPicker
+                items={allActiveItems}
+                value={selectedItemIds}
+                onChange={setSelectedItemIds}
+              />
             </Field.Root>
             <Button
               colorPalette="green"
-              disabled={!selectedItemId}
+              alignSelf="flex-end"
+              disabled={selectedItemIds.length === 0}
               loading={startMut.isPending}
-              onClick={() => selectedItemId && startMut.mutate(selectedItemId)}
+              onClick={() =>
+                selectedItemIds.length > 0 && startMut.mutate(selectedItemIds)
+              }
             >
-              Start
+              Start Session
             </Button>
-          </HStack>
+          </Stack>
         </Box>
       )}
 
@@ -214,7 +209,9 @@ export default function Sessions() {
                 <Table.Row key={s.id}>
                   <Table.Cell>{formatDate(s.started_at)}</Table.Cell>
                   <Table.Cell color="fg.muted">
-                    {s.expand?.study_item?.title ?? "—"}
+                    {s.expand?.study_items?.length
+                      ? s.expand.study_items.map((it) => it.title).join(", ")
+                      : "—"}
                   </Table.Cell>
                   <Table.Cell>
                     <Badge variant="subtle">{s.session_type || "—"}</Badge>
@@ -234,7 +231,7 @@ export default function Sessions() {
       <SessionLogModal
         open={logModalOpen}
         onClose={() => setLogModalOpen(false)}
-        items={allActiveItems}
+        items={allItems}
         loading={logMut.isPending}
         onSubmit={(data) => logMut.mutateAsync(data)}
       />

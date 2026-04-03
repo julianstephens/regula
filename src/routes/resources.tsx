@@ -1,3 +1,4 @@
+import { AppLink } from "@/components/ui/app-link";
 import { listAreas } from "@/lib/services/areaService";
 import {
   createResource,
@@ -252,6 +253,7 @@ export default function Resources() {
               <Table.ColumnHeader>Type</Table.ColumnHeader>
               <Table.ColumnHeader>Author</Table.ColumnHeader>
               <Table.ColumnHeader>Area</Table.ColumnHeader>
+              <Table.ColumnHeader>Study Items</Table.ColumnHeader>
               <Table.ColumnHeader w={16} />
             </Table.Row>
           </Table.Header>
@@ -263,8 +265,41 @@ export default function Resources() {
                   <Badge variant="subtle">{r.resource_type}</Badge>
                 </Table.Cell>
                 <Table.Cell color="fg.muted">{r.author || "—"}</Table.Cell>
-                <Table.Cell color="fg.muted">
-                  {r.expand?.area?.name ?? "—"}
+                <Table.Cell>
+                  {r.expand?.area ? (
+                    <HStack gap={1}>
+                      <Box
+                        w={2.5}
+                        h={2.5}
+                        borderRadius="sm"
+                        bg={r.expand.area.color || "gray.400"}
+                        flexShrink={0}
+                      />
+                      <Text fontSize="sm">{r.expand.area.name}</Text>
+                    </HStack>
+                  ) : (
+                    <Text color="fg.muted">—</Text>
+                  )}
+                </Table.Cell>
+                <Table.Cell>
+                  {r.expand?.["study_items(resource)"]?.length ? (
+                    <Stack gap={1}>
+                      {r.expand["study_items(resource)"].map((item) => (
+                        <AppLink
+                          key={item.id}
+                          to={`/study-items/${item.id}`}
+                          fontSize="sm"
+                          color="colorPalette.fg"
+                        >
+                          {item.title}
+                        </AppLink>
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Text color="fg.muted" fontSize="sm">
+                      —
+                    </Text>
+                  )}
                 </Table.Cell>
                 <Table.Cell>
                   <Button

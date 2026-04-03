@@ -12,7 +12,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 type CollectionName =
   | "areas"
@@ -23,7 +23,7 @@ type CollectionName =
   | "item_events"
   | "user_settings";
 
-const COLLECTIONS: { key: CollectionName; label: string }[] = [
+const COLLECTIONS: { key: CollectionName; label: string; }[] = [
   { key: "areas", label: "Areas" },
   { key: "programs", label: "Programs" },
   { key: "resources", label: "Resources" },
@@ -139,11 +139,8 @@ function BlockConfig() {
     queryKey: ["user_settings"],
     queryFn: getSettings,
   });
-  const [blockWeeks, setBlockWeeks] = useState<number>(DEFAULT_BLOCK_WEEKS);
-
-  useEffect(() => {
-    if (settings) setBlockWeeks(settings.block_weeks);
-  }, [settings]);
+  const [blockWeeks, setBlockWeeks] = useState<number | undefined>(undefined);
+  const currentWeeks = blockWeeks ?? settings?.block_weeks ?? DEFAULT_BLOCK_WEEKS;
 
   const updateMut = useMutation({
     mutationFn: (weeks: number) =>
@@ -153,7 +150,7 @@ function BlockConfig() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (settings) updateMut.mutate(blockWeeks);
+    if (settings) updateMut.mutate(currentWeeks);
   };
 
   return (
@@ -179,7 +176,7 @@ function BlockConfig() {
             min={2}
             max={6}
             step={1}
-            value={blockWeeks}
+            value={currentWeeks}
             onChange={(e) => setBlockWeeks(Number(e.target.value))}
             maxW="80px"
           />
