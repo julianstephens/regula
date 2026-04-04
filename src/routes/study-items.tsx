@@ -73,7 +73,7 @@ export default function StudyItems() {
   });
 
   const statusMut = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: ItemStatus; }) =>
+    mutationFn: ({ id, status }: { id: string; status: ItemStatus }) =>
       changeStatus(id, status),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["study_items"] });
@@ -171,7 +171,13 @@ export default function StudyItems() {
       )}
 
       {creating && (
-        <Box id="new-study-item" p={4} borderWidth={1} borderRadius="md" bg="bg.subtle">
+        <Box
+          id="new-study-item"
+          p={4}
+          borderWidth={1}
+          borderRadius="md"
+          bg="bg.subtle"
+        >
           <Heading size="sm" mb={4}>
             New Study Item
           </Heading>
@@ -196,7 +202,9 @@ export default function StudyItems() {
       )}
 
       {isLoading ? (
-        <Text id="study-items-loading" color="fg.muted">Loading…</Text>
+        <Text id="study-items-loading" color="fg.muted">
+          Loading…
+        </Text>
       ) : items.length === 0 ? (
         <Box id="study-items-empty" py={12} textAlign="center" color="fg.muted">
           <Text>No items match the current filters.</Text>

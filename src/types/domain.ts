@@ -150,5 +150,5 @@ export interface ItemEvent {
   owner: string;
   created: string;
   updated: string;
-  expand?: { study_item?: StudyItem; };
+  expand?: { study_item?: StudyItem };
 }

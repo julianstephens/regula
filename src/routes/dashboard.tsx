@@ -249,7 +249,11 @@ export default function Dashboard() {
       )}
 
       {/* Stats row */}
-      <Grid id="dashboard-stats" templateColumns="repeat(auto-fill, minmax(180px, 1fr))" gap={4}>
+      <Grid
+        id="dashboard-stats"
+        templateColumns="repeat(auto-fill, minmax(180px, 1fr))"
+        gap={4}
+      >
         <StatCard label="In Progress" value={inProgress.length} />
         <StatCard label="Today Scheduled" value={todayItems.length} />
         <StatCard label="Overdue" value={overdueItems.length} />

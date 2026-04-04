@@ -25,5 +25,7 @@ export async function updateResource(
   id: string,
   data: Partial<Resource>,
 ): Promise<Resource> {
-  return pb.collection("regula_resources").update(id, data) as Promise<Resource>;
+  return pb
+    .collection("regula_resources")
+    .update(id, data) as Promise<Resource>;
 }

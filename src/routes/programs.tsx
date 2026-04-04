@@ -184,10 +184,10 @@ function ProgramForm({
                 <Text pt={2} fontSize="sm" color="fg.muted">
                   {computedEndDate
                     ? computedEndDate.toLocaleDateString(undefined, {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })
                     : "—"}
                 </Text>
               </Field.Root>

@@ -16,7 +16,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-function AreaRow({ area, onEdit }: { area: Area; onEdit: () => void; }) {
+function AreaRow({ area, onEdit }: { area: Area; onEdit: () => void }) {
   return (
     <Table.Row>
       <Table.Cell>
@@ -140,7 +140,7 @@ export default function Areas() {
     },
   });
   const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Area>; }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<Area> }) =>
       updateArea(id, data),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["areas"] });

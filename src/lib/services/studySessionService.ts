@@ -38,7 +38,9 @@ export async function startSession(
       .getOne(id)) as import("@/types/domain").StudyItem;
     if (!areaId) areaId = item.area;
     if (item.status === "available") {
-      await pb.collection("regula_study_items").update(id, { status: "in_progress" });
+      await pb
+        .collection("regula_study_items")
+        .update(id, { status: "in_progress" });
       await createEvent(id, "started");
     }
   }
@@ -65,12 +67,14 @@ export async function endSession(
     (Date.now() - startedAt.getTime()) / 60_000,
   );
 
-  const updated = await (pb.collection("regula_study_sessions").update(sessionId, {
-    ended_at: endedAt,
-    outcome,
-    duration_minutes: durationMinutes,
-    notes: notes ?? "",
-  }) as Promise<StudySession>);
+  const updated = await (pb
+    .collection("regula_study_sessions")
+    .update(sessionId, {
+      ended_at: endedAt,
+      outcome,
+      duration_minutes: durationMinutes,
+      notes: notes ?? "",
+    }) as Promise<StudySession>);
 
   if (outcome === "completed") {
     for (const itemId of session.study_items ?? []) {

@@ -36,7 +36,7 @@ import { useState } from "react";
 import { useParams } from "react-router";
 
 export default function StudyItemDetail() {
-  const { id } = useParams<{ id: string; }>();
+  const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
@@ -107,7 +107,13 @@ export default function StudyItemDetail() {
   return (
     <Stack id="study-item-detail" gap={6}>
       {/* Header */}
-      <Flex id="study-item-header" justify="space-between" align="start" flexWrap="wrap" gap={3}>
+      <Flex
+        id="study-item-header"
+        justify="space-between"
+        align="start"
+        flexWrap="wrap"
+        gap={3}
+      >
         <Stack gap={1}>
           <AppLink
             to="/study-items"

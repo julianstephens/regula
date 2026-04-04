@@ -32,10 +32,10 @@ type RestWeekEntry = {
 
 type MixedEntry =
   | {
-    kind: "event" | "session";
-    timestamp: string;
-    data: ItemEvent | StudySession;
-  }
+      kind: "event" | "session";
+      timestamp: string;
+      data: ItemEvent | StudySession;
+    }
   | RestWeekEntry;
 
 export default function Timeline() {
@@ -107,7 +107,9 @@ export default function Timeline() {
       <Heading size="lg">Timeline</Heading>
 
       {isLoading ? (
-        <Text id="timeline-loading" color="fg.muted">Loading…</Text>
+        <Text id="timeline-loading" color="fg.muted">
+          Loading…
+        </Text>
       ) : entries.length === 0 ? (
         <Box id="timeline-empty" py={12} textAlign="center" color="fg.muted">
           <Text>No activity yet.</Text>
@@ -271,16 +273,16 @@ export default function Timeline() {
                       </Badge>
                       {sess.expand?.study_items?.length
                         ? sess.expand.study_items.map((it) => (
-                          <AppLink
-                            key={it.id}
-                            to={`/study-items/${it.id}`}
-                            fontWeight="medium"
-                            fontSize="sm"
-                            color="colorPalette.fg"
-                          >
-                            {it.title}
-                          </AppLink>
-                        ))
+                            <AppLink
+                              key={it.id}
+                              to={`/study-items/${it.id}`}
+                              fontWeight="medium"
+                              fontSize="sm"
+                              color="colorPalette.fg"
+                            >
+                              {it.title}
+                            </AppLink>
+                          ))
                         : null}
                       {sess.outcome && (
                         <Badge variant="outline" fontSize="xs">

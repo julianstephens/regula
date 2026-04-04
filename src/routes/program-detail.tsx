@@ -50,7 +50,7 @@ const STATUS_ORDER: ItemStatus[] = [
 ];
 
 export default function ProgramDetail() {
-  const { id } = useParams<{ id: string; }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
@@ -113,7 +113,8 @@ export default function ProgramDetail() {
   if (isLoading) return <Text>Loading…</Text>;
   if (!program) return <Text>Program not found.</Text>;
 
-  const children = (program.expand?.["regula_programs(parent)"] ?? []) as Program[];
+  const children = (program.expand?.["regula_programs(parent)"] ??
+    []) as Program[];
 
   const startEdit = () => {
     setName(program.name);
@@ -169,7 +170,13 @@ export default function ProgramDetail() {
   return (
     <Stack id="program-detail" gap={6}>
       {/* Header */}
-      <Flex id="program-detail-header" justify="space-between" align="start" flexWrap="wrap" gap={3}>
+      <Flex
+        id="program-detail-header"
+        justify="space-between"
+        align="start"
+        flexWrap="wrap"
+        gap={3}
+      >
         <Stack gap={1}>
           <AppLink
             alignSelf="flex-start"
@@ -297,10 +304,10 @@ export default function ProgramDetail() {
                         <Text pt={2} fontSize="sm" color="fg.muted">
                           {computedEndDate
                             ? computedEndDate.toLocaleDateString(undefined, {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            })
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })
                             : "—"}
                         </Text>
                       </Field.Root>
@@ -408,7 +415,11 @@ export default function ProgramDetail() {
       </Dialog.Root>
 
       {/* Tabbed content */}
-      <Tabs.Root id="program-detail-tabs" defaultValue="overview" variant="line">
+      <Tabs.Root
+        id="program-detail-tabs"
+        defaultValue="overview"
+        variant="line"
+      >
         <Tabs.List>
           <Tabs.Trigger value="overview">Overview</Tabs.Trigger>
           {program.type !== "term" && (
@@ -429,7 +440,6 @@ export default function ProgramDetail() {
               </Badge>
             </Tabs.Trigger>
           )}
-
         </Tabs.List>
 
         {/* Overview */}
@@ -590,7 +600,9 @@ export default function ProgramDetail() {
                           </AppLink>
                         </Table.Cell>
                         <Table.Cell>
-                          <Badge variant="subtle">{item.item_type || "—"}</Badge>
+                          <Badge variant="subtle">
+                            {item.item_type || "—"}
+                          </Badge>
                         </Table.Cell>
                         <Table.Cell>{formatDate(item.due_date)}</Table.Cell>
                         <Table.Cell>
@@ -651,8 +663,6 @@ export default function ProgramDetail() {
             </Stack>
           </Tabs.Content>
         )}
-
-
       </Tabs.Root>
     </Stack>
   );

@@ -58,8 +58,7 @@ export function StudyItemForm({
   });
 
   useEffect(() => {
-    if (defaultValues)
-      reset({ status: "planned", ...defaultValues });
+    if (defaultValues) reset({ status: "planned", ...defaultValues });
   }, [defaultValues, reset]);
 
   return (

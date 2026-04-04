@@ -23,7 +23,7 @@ type CollectionName =
   | "regula_item_events"
   | "regula_user_settings";
 
-const COLLECTIONS: { key: CollectionName; label: string; }[] = [
+const COLLECTIONS: { key: CollectionName; label: string }[] = [
   { key: "regula_areas", label: "Areas" },
   { key: "regula_programs", label: "Programs" },
   { key: "regula_resources", label: "Resources" },
@@ -140,7 +140,8 @@ function BlockConfig() {
     queryFn: getSettings,
   });
   const [blockWeeks, setBlockWeeks] = useState<number | undefined>(undefined);
-  const currentWeeks = blockWeeks ?? settings?.block_weeks ?? DEFAULT_BLOCK_WEEKS;
+  const currentWeeks =
+    blockWeeks ?? settings?.block_weeks ?? DEFAULT_BLOCK_WEEKS;
 
   const updateMut = useMutation({
     mutationFn: (weeks: number) =>

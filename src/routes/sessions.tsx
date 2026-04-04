@@ -143,7 +143,14 @@ export default function Sessions() {
           </HStack>
         </Box>
       ) : (
-        <Box id="new-session" w="full" p={4} borderWidth={1} borderRadius="md" bg="bg.subtle">
+        <Box
+          id="new-session"
+          w="full"
+          p={4}
+          borderWidth={1}
+          borderRadius="md"
+          bg="bg.subtle"
+        >
           <Text fontWeight="medium" mb={3}>
             Start New Session
           </Text>

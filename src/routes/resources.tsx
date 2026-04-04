@@ -181,7 +181,7 @@ export default function Resources() {
     },
   });
   const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Resource>; }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<Resource> }) =>
       updateResource(id, data),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["resources"] });

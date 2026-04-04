@@ -34,14 +34,14 @@ import { useParams } from "react-router";
 
 type Step = "upload" | "match" | "preview" | "importing" | "done";
 
-const STEPS: { key: Exclude<Step, "importing">; label: string; }[] = [
+const STEPS: { key: Exclude<Step, "importing">; label: string }[] = [
   { key: "upload", label: "Upload" },
   { key: "match", label: "Match Areas" },
   { key: "preview", label: "Preview" },
   { key: "done", label: "Done" },
 ];
 
-function StepIndicator({ current }: { current: Step; }) {
+function StepIndicator({ current }: { current: Step }) {
   const activeIndex =
     current === "importing" ? 2 : STEPS.findIndex((s) => s.key === current);
 
@@ -114,7 +114,7 @@ function readFileAsText(file: File): Promise<string> {
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function Import() {
-  const { id: termId } = useParams<{ id: string; }>();
+  const { id: termId } = useParams<{ id: string }>();
   const qc = useQueryClient();
 
   const [step, setStep] = useState<Step>("upload");
@@ -160,10 +160,10 @@ export default function Import() {
   const previewBlocks =
     term?.start_date && term?.end_date
       ? computeBlockRanges(
-        new Date(term.start_date),
-        new Date(term.end_date),
-        term.block_weeks || globalBlockWeeks,
-      )
+          new Date(term.start_date),
+          new Date(term.end_date),
+          term.block_weeks || globalBlockWeeks,
+        )
       : [];
 
   const importMut = useMutation({
@@ -222,7 +222,13 @@ export default function Import() {
     <Stack id="import-syllabi" gap={8} w="full">
       {/* Header */}
       <Stack id="import-syllabi-header" gap={1}>
-        <AppLink alignSelf="flex-start" mb="6" to={`/programs/${termId}`} color="fg.muted" fontSize="sm">
+        <AppLink
+          alignSelf="flex-start"
+          mb="6"
+          to={`/programs/${termId}`}
+          color="fg.muted"
+          fontSize="sm"
+        >
           ← {term.name}
         </AppLink>
         <Flex align="center" gap={3}>
@@ -386,10 +392,7 @@ export default function Import() {
             exclude a syllabus from the import.
           </Text>
 
-          <Grid
-            templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)" }}
-            gap={3}
-          >
+          <Grid templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)" }} gap={3}>
             {uniqueSlugs.map((slug) => {
               const matched = areaMatches[slug];
               const matchedArea = areas.find((a) => a.id === matched);
@@ -548,8 +551,8 @@ export default function Import() {
                     .filter((s) => areaMatches[s.area])
                     .map((s) => {
                       const areaName =
-                        areas.find((a) => a.id === areaMatches[s.area])
-                          ?.name ?? "";
+                        areas.find((a) => a.id === areaMatches[s.area])?.name ??
+                        "";
                       const totalSessions = s.tracks.reduce(
                         (acc, t) => acc + t.sessions.length,
                         0,
@@ -648,7 +651,13 @@ export default function Import() {
 
       {/* ── Importing ── */}
       {step === "importing" && (
-        <Flex id="import-syllabi-importing" direction="column" align="center" gap={4} py={12}>
+        <Flex
+          id="import-syllabi-importing"
+          direction="column"
+          align="center"
+          gap={4}
+          py={12}
+        >
           <Spinner size="xl" color="blue.500" />
           <Stack gap={1} align="center">
             <Text fontWeight="medium">Importing syllabi…</Text>
@@ -730,5 +739,3 @@ export default function Import() {
     </Stack>
   );
 }
-
-
