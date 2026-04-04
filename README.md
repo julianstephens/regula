@@ -1,73 +1,112 @@
-# React + TypeScript + Vite
+# Regula
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Regula is a PocketBase-backed study planning and session tracking app for managing learning areas, programs, resources, study items, and focused work sessions.
 
-Currently, two official plugins are available:
+## Core features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Dashboard with today, in-progress, overdue, and weekly time summaries
+- Program planning across year, term, block, and custom program types
+- Configurable block durations with automatic rest weeks
+- Area, resource, and study item management
+- Session timer plus manual session logging
+- Timeline view for item events and study sessions
+- Settings page for block defaults and JSON/CSV data export
+- PocketBase authentication and realtime updates
+- Markdown syllabus import for creating study items from term materials
 
-## React Compiler
+## Tech stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React 19
+- TypeScript 5
+- Vite 8
+- Chakra UI 3
+- TanStack Query 5
+- React Router 7
+- PocketBase
+- Nginx for the production container
 
-## Expanding the ESLint configuration
+## PocketBase collections
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+The app is built around these collections:
 
-```js
-export default defineConfig([
-  globalIgnores(["dist"]),
-  {
-    files: ["**/*.{ts,tsx}"],
-    extends: [
-      // Other configs...
+- `regula_areas`
+- `regula_programs`
+- `regula_resources`
+- `regula_study_items`
+- `regula_study_sessions`
+- `regula_item_events`
+- `regula_user_settings`
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Schema changes live in `pb_migrations/`.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+## Local development
+
+### Prerequisites
+
+- Node.js with `pnpm` available
+- A running PocketBase instance that this frontend can reach
+
+### Environment
+
+Create a `.env.local` file in the project root:
+
+```bash
+VITE_POCKETBASE_URL=http://127.0.0.1:8090
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Install and run
 
-```js
-// eslint.config.js
-import reactX from "eslint-plugin-react-x";
-import reactDom from "eslint-plugin-react-dom";
-
-export default defineConfig([
-  globalIgnores(["dist"]),
-  {
-    files: ["**/*.{ts,tsx}"],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs["recommended-typescript"],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+```bash
+pnpm install
+pnpm dev
 ```
+
+Then open `http://localhost:5173`.
+
+## Available scripts
+
+| Command | Description |
+| --- | --- |
+| `pnpm dev` | Start the Vite development server |
+| `pnpm build` | Type-check and create a production build |
+| `pnpm preview` | Preview the production build locally |
+| `pnpm lint` | Run ESLint |
+| `pnpm format` | Format the codebase with Prettier |
+
+## Docker
+
+Build the production image with a PocketBase URL baked into the frontend bundle:
+
+```bash
+docker build \
+  --build-arg VITE_POCKETBASE_URL=http://127.0.0.1:8090 \
+  -t regula .
+```
+
+Run the built container:
+
+```bash
+docker run --rm -p 8080:80 regula
+```
+
+The container serves the static app with Nginx. PocketBase must still be available at the URL used during the build.
+
+## Deployment notes
+
+- `Dockerfile` builds the frontend and serves `dist/` through Nginx.
+- `coolify.manifest.json` is configured for a `Regula` service using `ghcr.io/julianstephens/regula`.
+- `scripts/release.py` creates a git tag and GitHub release from the latest entry in `CHANGELOG.md`.
+
+## Repository layout
+
+```text
+src/                 Frontend app, routes, UI components, and services
+pb_migrations/       PocketBase schema migrations
+pb_data/             Local PocketBase data checked into the repo
+public/              Static assets
+scripts/release.py   Release automation
+```
+
+## Notes
+
+This repo contains the frontend plus PocketBase schema/data artifacts. It does not include a PocketBase server binary, so you will need to run or connect to an existing PocketBase instance for local development and production use.
