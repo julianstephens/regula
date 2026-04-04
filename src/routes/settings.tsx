@@ -198,17 +198,17 @@ function BlockConfig() {
 
 export default function Settings() {
   return (
-    <Stack gap={8}>
+    <Stack id="settings" gap={8}>
       <Heading size="lg">Settings</Heading>
 
-      <Box w="full">
+      <Box id="block-config" w="full">
         <Heading size="md" mb={4}>
           Block Configuration
         </Heading>
         <BlockConfig />
       </Box>
 
-      <Box w="full">
+      <Box id="export-data" w="full">
         <Heading size="md" mb={4}>
           Export Data
         </Heading>
@@ -222,7 +222,7 @@ export default function Settings() {
         </Stack>
       </Box>
 
-      <Box>
+      <Box id="account">
         <Heading size="md" mb={4}>
           Account
         </Heading>

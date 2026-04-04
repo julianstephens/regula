@@ -50,7 +50,7 @@ const STATUS_ORDER: ItemStatus[] = [
 ];
 
 export default function ProgramDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams<{ id: string; }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
@@ -76,8 +76,20 @@ export default function ProgramDetail() {
   });
 
   const { data: studyItems = [] } = useQuery<StudyItem[]>({
-    queryKey: ["study_items", { program: id }],
-    queryFn: () => listStudyItems({ program: id }),
+    queryKey: ["study_items", { program: id }, program?.type],
+    queryFn: async () => {
+      if (program?.type === "term") {
+        const childIds = (
+          (program.expand?.["regula_programs(parent)"] ?? []) as Program[]
+        ).map((c) => c.id);
+        const ids = [id!, ...childIds];
+        const results = await Promise.all(
+          ids.map((pid) => listStudyItems({ program: pid })),
+        );
+        return results.flat();
+      }
+      return listStudyItems({ program: id });
+    },
     enabled: !!id,
   });
 
@@ -98,31 +110,10 @@ export default function ProgramDetail() {
     },
   });
 
-  // Assessments: quiz + exam items across this program and child blocks (term only)
-  const { data: rawAssessments = [] } = useQuery<StudyItem[]>({
-    queryKey: ["study_items", "assessments", id],
-    queryFn: async () => {
-      if (!program) return [];
-      const childIds = (
-        (program.expand?.["programs(parent)"] ?? []) as Program[]
-      ).map((c) => c.id);
-      const ids = [id!, ...childIds];
-      const results = await Promise.all(
-        ids.map((pid) => listStudyItems({ program: pid })),
-      );
-      return results.flat();
-    },
-    enabled: !!program && program.type === "term",
-  });
-
-  const assessments = rawAssessments.filter(
-    (item) => item.item_type === "quiz" || item.item_type === "exam",
-  );
-
   if (isLoading) return <Text>Loading…</Text>;
   if (!program) return <Text>Program not found.</Text>;
 
-  const children = (program.expand?.["programs(parent)"] ?? []) as Program[];
+  const children = (program.expand?.["regula_programs(parent)"] ?? []) as Program[];
 
   const startEdit = () => {
     setName(program.name);
@@ -176,9 +167,9 @@ export default function ProgramDetail() {
   });
 
   return (
-    <Stack gap={6}>
+    <Stack id="program-detail" gap={6}>
       {/* Header */}
-      <Flex justify="space-between" align="start" flexWrap="wrap" gap={3}>
+      <Flex id="program-detail-header" justify="space-between" align="start" flexWrap="wrap" gap={3}>
         <Stack gap={1}>
           <AppLink
             alignSelf="flex-start"
@@ -224,6 +215,7 @@ export default function ProgramDetail() {
 
       {/* Edit dialog */}
       <Dialog.Root
+        id="program-detail-edit-dialog"
         open={editing}
         onOpenChange={({ open: o }) => !o && setEditing(false)}
         size="lg"
@@ -305,10 +297,10 @@ export default function ProgramDetail() {
                         <Text pt={2} fontSize="sm" color="fg.muted">
                           {computedEndDate
                             ? computedEndDate.toLocaleDateString(undefined, {
-                                year: "numeric",
-                                month: "short",
-                                day: "numeric",
-                              })
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })
                             : "—"}
                         </Text>
                       </Field.Root>
@@ -352,6 +344,7 @@ export default function ProgramDetail() {
 
       {/* Delete confirm dialog */}
       <Dialog.Root
+        id="program-detail-delete-dialog"
         open={confirmDelete}
         onOpenChange={({ open: o }) => {
           if (!o) {
@@ -415,17 +408,19 @@ export default function ProgramDetail() {
       </Dialog.Root>
 
       {/* Tabbed content */}
-      <Tabs.Root defaultValue="overview" variant="line">
+      <Tabs.Root id="program-detail-tabs" defaultValue="overview" variant="line">
         <Tabs.List>
           <Tabs.Trigger value="overview">Overview</Tabs.Trigger>
-          <Tabs.Trigger value="items">
-            Study Items
-            {total > 0 && (
-              <Badge ml={2} variant="subtle" colorPalette="gray" size="sm">
-                {total}
-              </Badge>
-            )}
-          </Tabs.Trigger>
+          {program.type !== "term" && (
+            <Tabs.Trigger value="items">
+              Study Items
+              {total > 0 && (
+                <Badge ml={2} variant="subtle" colorPalette="gray" size="sm">
+                  {total}
+                </Badge>
+              )}
+            </Tabs.Trigger>
+          )}
           {children.length > 0 && (
             <Tabs.Trigger value="subprograms">
               Sub-programs
@@ -434,16 +429,7 @@ export default function ProgramDetail() {
               </Badge>
             </Tabs.Trigger>
           )}
-          {program.type === "term" && (
-            <Tabs.Trigger value="assessments">
-              Assessments
-              {assessments.length > 0 && (
-                <Badge ml={2} variant="subtle" colorPalette="gray" size="sm">
-                  {assessments.length}
-                </Badge>
-              )}
-            </Tabs.Trigger>
-          )}
+
         </Tabs.List>
 
         {/* Overview */}
@@ -565,75 +551,59 @@ export default function ProgramDetail() {
         </Tabs.Content>
 
         {/* Study Items */}
-        <Tabs.Content value="items">
-          <Stack gap={3} pt={4}>
-            {sortedItems.length === 0 ? (
-              <Box
-                p={8}
-                textAlign="center"
-                borderWidth={1}
-                borderRadius="md"
-                borderStyle="dashed"
-              >
-                <Text color="fg.muted">
-                  No study items assigned to this program yet.
-                </Text>
-              </Box>
-            ) : (
-              <Table.Root variant="outline">
-                <Table.Header>
-                  <Table.Row>
-                    <Table.ColumnHeader>Title</Table.ColumnHeader>
-                    <Table.ColumnHeader>Type</Table.ColumnHeader>
-                    <Table.ColumnHeader>Priority</Table.ColumnHeader>
-                    <Table.ColumnHeader>Due</Table.ColumnHeader>
-                    <Table.ColumnHeader>Status</Table.ColumnHeader>
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  {sortedItems.map((item) => (
-                    <Table.Row key={item.id}>
-                      <Table.Cell>
-                        <AppLink
-                          to={`/study-items/${item.id}`}
-                          color="colorPalette.fg"
-                          fontWeight="medium"
-                        >
-                          {item.title}
-                        </AppLink>
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Badge variant="subtle">{item.item_type || "—"}</Badge>
-                      </Table.Cell>
-                      <Table.Cell>
-                        {item.priority !== "normal" ? (
-                          <Badge
-                            variant="outline"
-                            colorPalette={
-                              item.priority === "critical"
-                                ? "red"
-                                : item.priority === "high"
-                                  ? "orange"
-                                  : "gray"
-                            }
-                          >
-                            {item.priority}
-                          </Badge>
-                        ) : (
-                          <Text color="fg.subtle">—</Text>
-                        )}
-                      </Table.Cell>
-                      <Table.Cell>{formatDate(item.due_date)}</Table.Cell>
-                      <Table.Cell>
-                        <StatusBadge status={item.status} />
-                      </Table.Cell>
+        {program.type !== "term" && (
+          <Tabs.Content value="items">
+            <Stack gap={3} pt={4}>
+              {sortedItems.length === 0 ? (
+                <Box
+                  p={8}
+                  textAlign="center"
+                  borderWidth={1}
+                  borderRadius="md"
+                  borderStyle="dashed"
+                >
+                  <Text color="fg.muted">
+                    No study items assigned to this program yet.
+                  </Text>
+                </Box>
+              ) : (
+                <Table.Root variant="outline">
+                  <Table.Header>
+                    <Table.Row>
+                      <Table.ColumnHeader>Title</Table.ColumnHeader>
+                      <Table.ColumnHeader>Type</Table.ColumnHeader>
+
+                      <Table.ColumnHeader>Due</Table.ColumnHeader>
+                      <Table.ColumnHeader>Status</Table.ColumnHeader>
                     </Table.Row>
-                  ))}
-                </Table.Body>
-              </Table.Root>
-            )}
-          </Stack>
-        </Tabs.Content>
+                  </Table.Header>
+                  <Table.Body>
+                    {sortedItems.map((item) => (
+                      <Table.Row key={item.id}>
+                        <Table.Cell>
+                          <AppLink
+                            to={`/study-items/${item.id}`}
+                            color="colorPalette.fg"
+                            fontWeight="medium"
+                          >
+                            {item.title}
+                          </AppLink>
+                        </Table.Cell>
+                        <Table.Cell>
+                          <Badge variant="subtle">{item.item_type || "—"}</Badge>
+                        </Table.Cell>
+                        <Table.Cell>{formatDate(item.due_date)}</Table.Cell>
+                        <Table.Cell>
+                          <StatusBadge status={item.status} />
+                        </Table.Cell>
+                      </Table.Row>
+                    ))}
+                  </Table.Body>
+                </Table.Root>
+              )}
+            </Stack>
+          </Tabs.Content>
+        )}
 
         {/* Sub-programs */}
         {children.length > 0 && (
@@ -682,65 +652,7 @@ export default function ProgramDetail() {
           </Tabs.Content>
         )}
 
-        {/* Assessments (term programs only) */}
-        {program.type === "term" && (
-          <Tabs.Content value="assessments">
-            <Stack gap={3} pt={4}>
-              {assessments.length === 0 ? (
-                <Box
-                  p={8}
-                  textAlign="center"
-                  borderWidth={1}
-                  borderRadius="md"
-                  borderStyle="dashed"
-                >
-                  <Text color="fg.muted">No assessments found.</Text>
-                </Box>
-              ) : (
-                <Table.Root variant="outline">
-                  <Table.Header>
-                    <Table.Row>
-                      <Table.ColumnHeader>Title</Table.ColumnHeader>
-                      <Table.ColumnHeader>Type</Table.ColumnHeader>
-                      <Table.ColumnHeader>Area</Table.ColumnHeader>
-                      <Table.ColumnHeader>Due</Table.ColumnHeader>
-                      <Table.ColumnHeader>Status</Table.ColumnHeader>
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {assessments.map((item) => (
-                      <Table.Row key={item.id}>
-                        <Table.Cell>
-                          <AppLink
-                            to={`/study-items/${item.id}`}
-                            color="colorPalette.fg"
-                            fontWeight="medium"
-                          >
-                            {item.title}
-                          </AppLink>
-                        </Table.Cell>
-                        <Table.Cell>
-                          <Badge variant="subtle">
-                            {item.item_type === "quiz"
-                              ? "Midterm"
-                              : "Final Exam"}
-                          </Badge>
-                        </Table.Cell>
-                        <Table.Cell>
-                          {item.expand?.area?.name ?? "—"}
-                        </Table.Cell>
-                        <Table.Cell>{formatDate(item.due_date)}</Table.Cell>
-                        <Table.Cell>
-                          <StatusBadge status={item.status} />
-                        </Table.Cell>
-                      </Table.Row>
-                    ))}
-                  </Table.Body>
-                </Table.Root>
-              )}
-            </Stack>
-          </Tabs.Content>
-        )}
+
       </Tabs.Root>
     </Stack>
   );

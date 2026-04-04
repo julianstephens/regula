@@ -16,7 +16,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-function AreaRow({ area, onEdit }: { area: Area; onEdit: () => void }) {
+function AreaRow({ area, onEdit }: { area: Area; onEdit: () => void; }) {
   return (
     <Table.Row>
       <Table.Cell>
@@ -71,6 +71,7 @@ function AreaForm({
 
   return (
     <Box
+      id="area-form"
       as="form"
       onSubmit={handleSubmit}
       p={4}
@@ -139,7 +140,7 @@ export default function Areas() {
     },
   });
   const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Area> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<Area>; }) =>
       updateArea(id, data),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["areas"] });
@@ -150,7 +151,7 @@ export default function Areas() {
   const editingArea = areas.find((a) => a.id === editingId);
 
   return (
-    <Stack gap={6}>
+    <Stack id="areas" gap={6}>
       <Flex justify="space-between" align="center">
         <Heading size="lg">Areas</Heading>
         {!creating && (
@@ -197,7 +198,7 @@ export default function Areas() {
               <Table.ColumnHeader w={8} />
             </Table.Row>
           </Table.Header>
-          <Table.Body>
+          <Table.Body id="areas-table-body">
             {areas.map((area) => (
               <AreaRow
                 key={area.id}

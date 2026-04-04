@@ -231,12 +231,12 @@ export default function Dashboard() {
   }, [qc]);
 
   return (
-    <Stack gap={8}>
+    <Stack id="dashboard" gap={8}>
       <Heading size="lg">Dashboard</Heading>
 
       {/* Active block status */}
       {activeBlocks.length > 0 && (
-        <Stack gap={3}>
+        <Stack id="dashboard-active-blocks" gap={3}>
           {activeBlocks.map((p) => (
             <BlockStatusCard
               key={p.id}
@@ -249,7 +249,7 @@ export default function Dashboard() {
       )}
 
       {/* Stats row */}
-      <Grid templateColumns="repeat(auto-fill, minmax(180px, 1fr))" gap={4}>
+      <Grid id="dashboard-stats" templateColumns="repeat(auto-fill, minmax(180px, 1fr))" gap={4}>
         <StatCard label="In Progress" value={inProgress.length} />
         <StatCard label="Today Scheduled" value={todayItems.length} />
         <StatCard label="Overdue" value={overdueItems.length} />
@@ -259,7 +259,7 @@ export default function Dashboard() {
 
       {/* In Progress */}
       {inProgress.length > 0 && (
-        <Stack gap={3}>
+        <Stack id="dashboard-in-progress" gap={3}>
           <Heading size="md">In Progress</Heading>
           <Stack gap={2}>
             {inProgress.map((item) => (
@@ -294,7 +294,7 @@ export default function Dashboard() {
 
       {/* Today Scheduled */}
       {todayItems.length > 0 && (
-        <Stack gap={3}>
+        <Stack id="dashboard-today-scheduled" gap={3}>
           <Heading size="md">Today</Heading>
           <Table.Root variant="outline">
             <Table.Body>
@@ -324,7 +324,7 @@ export default function Dashboard() {
 
       {/* Overdue */}
       {overdueItems.length > 0 && (
-        <Stack gap={3}>
+        <Stack id="dashboard-overdue" gap={3}>
           <Heading size="md" color="red.fg">
             Overdue
           </Heading>
@@ -356,7 +356,7 @@ export default function Dashboard() {
 
       {/* Recent Completions */}
       {recentCompletions.length > 0 && (
-        <Stack gap={3}>
+        <Stack id="dashboard-recent-completions" gap={3}>
           <Heading size="md">Recent Completions</Heading>
           <Stack gap={2}>
             {recentCompletions.map((item) => (
@@ -386,7 +386,7 @@ export default function Dashboard() {
 
       {/* Area Summary */}
       {areaSummary.length > 0 && (
-        <Stack gap={3}>
+        <Stack id="dashboard-area-summary" gap={3}>
           <Heading size="md">This Week by Area</Heading>
           <HStack gap={4} flexWrap="wrap">
             {areaSummary.map(({ area, mins }) => (

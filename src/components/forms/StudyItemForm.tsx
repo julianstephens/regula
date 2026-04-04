@@ -15,7 +15,6 @@ interface StudyItemFormValues {
   title: string;
   item_type: StudyItem["item_type"];
   status: StudyItem["status"];
-  priority: StudyItem["priority"];
   area: string;
   program: string;
   resource: string;
@@ -54,14 +53,13 @@ export function StudyItemForm({
   } = useForm<StudyItemFormValues>({
     defaultValues: {
       status: "planned",
-      priority: "normal",
       ...defaultValues,
     },
   });
 
   useEffect(() => {
     if (defaultValues)
-      reset({ status: "planned", priority: "normal", ...defaultValues });
+      reset({ status: "planned", ...defaultValues });
   }, [defaultValues, reset]);
 
   return (
@@ -119,20 +117,6 @@ export function StudyItemForm({
                 ).map((v) => (
                   <option key={v} value={v}>
                     {v.replace(/_/g, " ")}
-                  </option>
-                ))}
-              </NativeSelect.Field>
-              <NativeSelect.Indicator />
-            </NativeSelect.Root>
-          </Field.Root>
-
-          <Field.Root>
-            <Field.Label>Priority</Field.Label>
-            <NativeSelect.Root>
-              <NativeSelect.Field {...register("priority")}>
-                {(["low", "normal", "high", "critical"] as const).map((v) => (
-                  <option key={v} value={v}>
-                    {v}
                   </option>
                 ))}
               </NativeSelect.Field>

@@ -83,6 +83,7 @@ function ProgramForm({
 
   return (
     <Box
+      id="program-form"
       as="form"
       onSubmit={handleSubmit}
       p={4}
@@ -183,10 +184,10 @@ function ProgramForm({
                 <Text pt={2} fontSize="sm" color="fg.muted">
                   {computedEndDate
                     ? computedEndDate.toLocaleDateString(undefined, {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })
                     : "—"}
                 </Text>
               </Field.Root>
@@ -256,7 +257,7 @@ export default function Programs() {
   });
 
   return (
-    <Stack gap={6}>
+    <Stack id="programs" gap={6}>
       <Flex justify="space-between" align="center">
         <Heading size="lg">Programs</Heading>
         {!creating && (

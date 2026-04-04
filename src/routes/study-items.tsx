@@ -73,7 +73,7 @@ export default function StudyItems() {
   });
 
   const statusMut = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: ItemStatus }) =>
+    mutationFn: ({ id, status }: { id: string; status: ItemStatus; }) =>
       changeStatus(id, status),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["study_items"] });
@@ -90,8 +90,8 @@ export default function StudyItems() {
   };
 
   return (
-    <Stack gap={6}>
-      <Flex justify="space-between" align="center">
+    <Stack id="study-items" gap={6}>
+      <Flex id="study-items-header" justify="space-between" align="center">
         <Heading size="lg">Study Items</Heading>
         {!creating && (
           <Button size="sm" onClick={() => setCreating(true)}>
@@ -101,7 +101,7 @@ export default function StudyItems() {
       </Flex>
 
       {!creating && (
-        <HStack gap={3} flexWrap="wrap">
+        <HStack id="study-items-filters" gap={3} flexWrap="wrap">
           <NativeSelect.Root w="180px">
             <NativeSelect.Field
               value={statusFilter}
@@ -163,7 +163,6 @@ export default function StudyItems() {
               <option value="-created">Newest first</option>
               <option value="created">Oldest first</option>
               <option value="due_date">Due date</option>
-              <option value="-priority">Priority</option>
               <option value="title">Title A–Z</option>
             </NativeSelect.Field>
             <NativeSelect.Indicator />
@@ -172,7 +171,7 @@ export default function StudyItems() {
       )}
 
       {creating && (
-        <Box p={4} borderWidth={1} borderRadius="md" bg="bg.subtle">
+        <Box id="new-study-item" p={4} borderWidth={1} borderRadius="md" bg="bg.subtle">
           <Heading size="sm" mb={4}>
             New Study Item
           </Heading>
@@ -197,9 +196,9 @@ export default function StudyItems() {
       )}
 
       {isLoading ? (
-        <Text color="fg.muted">Loading…</Text>
+        <Text id="study-items-loading" color="fg.muted">Loading…</Text>
       ) : items.length === 0 ? (
-        <Box py={12} textAlign="center" color="fg.muted">
+        <Box id="study-items-empty" py={12} textAlign="center" color="fg.muted">
           <Text>No items match the current filters.</Text>
         </Box>
       ) : (
@@ -208,7 +207,6 @@ export default function StudyItems() {
             <Table.Row>
               <Table.ColumnHeader>Title</Table.ColumnHeader>
               <Table.ColumnHeader>Status</Table.ColumnHeader>
-              <Table.ColumnHeader>Priority</Table.ColumnHeader>
               <Table.ColumnHeader>Area</Table.ColumnHeader>
               <Table.ColumnHeader>Due</Table.ColumnHeader>
               <Table.ColumnHeader w={24} />
@@ -217,6 +215,7 @@ export default function StudyItems() {
           <Table.Body>
             {items.map((item: StudyItem) => (
               <Table.Row
+                id={`study-item-${item.id}`}
                 key={item.id}
                 bg={
                   isOverdue(item.due_date, item.status)
@@ -226,6 +225,7 @@ export default function StudyItems() {
               >
                 <Table.Cell>
                   <AppLink
+                    id={`study-item-link-${item.id}`}
                     to={`/study-items/${item.id}`}
                     color="colorPalette.fg"
                     fontWeight="medium"
@@ -236,7 +236,6 @@ export default function StudyItems() {
                 <Table.Cell>
                   <StatusBadge status={item.status} />
                 </Table.Cell>
-                <Table.Cell color="fg.muted">{item.priority}</Table.Cell>
                 <Table.Cell color="fg.muted">
                   {item.expand?.area?.name ?? "—"}
                 </Table.Cell>
@@ -250,7 +249,7 @@ export default function StudyItems() {
                   {formatDate(item.due_date)}
                 </Table.Cell>
                 <Table.Cell>
-                  <HStack gap={1}>
+                  <HStack gap={1} id={`study-item-actions-${item.id}`}>
                     {item.status === "available" && (
                       <Button
                         size="xs"

@@ -181,7 +181,7 @@ export default function Resources() {
     },
   });
   const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Resource> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<Resource>; }) =>
       updateResource(id, data),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["resources"] });
@@ -192,7 +192,7 @@ export default function Resources() {
   const editingResource = resources.find((r) => r.id === editingId);
 
   return (
-    <Stack gap={6}>
+    <Stack id="resources" gap={6}>
       <Flex justify="space-between" align="center">
         <Heading size="lg">Resources</Heading>
         {!creating && (

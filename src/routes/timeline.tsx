@@ -103,17 +103,18 @@ export default function Timeline() {
   }, [qc]);
 
   return (
-    <Stack gap={6}>
+    <Stack id="timeline" gap={6}>
       <Heading size="lg">Timeline</Heading>
 
       {isLoading ? (
-        <Text color="fg.muted">Loading…</Text>
+        <Text id="timeline-loading" color="fg.muted">Loading…</Text>
       ) : entries.length === 0 ? (
-        <Box py={12} textAlign="center" color="fg.muted">
+        <Box id="timeline-empty" py={12} textAlign="center" color="fg.muted">
           <Text>No activity yet.</Text>
         </Box>
       ) : (
         <Stack
+          id="timeline-entries"
           gap={0}
           borderLeft="2px solid"
           borderColor="border.subtle"
@@ -179,6 +180,7 @@ export default function Timeline() {
               const ev = entry.data as ItemEvent;
               return (
                 <HStack
+                  id={`timeline-event-${ev.id}`}
                   key={`e-${ev.id}-${i}`}
                   align="flex-start"
                   gap={4}
@@ -238,6 +240,7 @@ export default function Timeline() {
             const sess = entry.data as StudySession;
             return (
               <HStack
+                id={`timeline-session-${sess.id}`}
                 key={`s-${sess.id}-${i}`}
                 align="flex-start"
                 gap={4}

@@ -80,7 +80,7 @@ export default function Root() {
       </Box>
 
       {/* Main content */}
-      <Box flex={1} overflow="auto" p={8}>
+      <Box id="main-content" flex={1} overflow="auto" p={8}>
         <Outlet />
       </Box>
     </Flex>

@@ -105,9 +105,9 @@ export default function StudyItemDetail() {
   );
 
   return (
-    <Stack gap={6}>
+    <Stack id="study-item-detail" gap={6}>
       {/* Header */}
-      <Flex justify="space-between" align="start" flexWrap="wrap" gap={3}>
+      <Flex id="study-item-header" justify="space-between" align="start" flexWrap="wrap" gap={3}>
         <Stack gap={1}>
           <AppLink
             to="/study-items"
@@ -121,20 +121,6 @@ export default function StudyItemDetail() {
           <HStack flexWrap="wrap" gap={2}>
             <Heading size="lg">{item.title}</Heading>
             <StatusBadge status={item.status} />
-            {item.priority && item.priority !== "normal" && (
-              <Badge
-                colorPalette={
-                  item.priority === "critical"
-                    ? "red"
-                    : item.priority === "high"
-                      ? "orange"
-                      : "gray"
-                }
-                variant="outline"
-              >
-                {item.priority}
-              </Badge>
-            )}
           </HStack>
         </Stack>
 
@@ -183,6 +169,7 @@ export default function StudyItemDetail() {
 
       {/* Edit dialog */}
       <Dialog.Root
+        id="edit-study-item"
         open={editing}
         onOpenChange={({ open: o }) => !o && setEditing(false)}
         size="lg"
@@ -204,7 +191,6 @@ export default function StudyItemDetail() {
                   title: item.title,
                   item_type: item.item_type,
                   status: item.status,
-                  priority: item.priority,
                   area: item.area,
                   program: item.program,
                   resource: item.resource,
@@ -276,7 +262,7 @@ export default function StudyItemDetail() {
         </Tabs.List>
 
         {/* Details tab */}
-        <Tabs.Content value="details">
+        <Tabs.Content id="study-item-details" value="details">
           <Stack gap={4} pt={4}>
             <Grid
               templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }}
@@ -370,7 +356,7 @@ export default function StudyItemDetail() {
         </Tabs.Content>
 
         {/* Sessions tab */}
-        <Tabs.Content value="sessions">
+        <Tabs.Content id="study-item-sessions" value="sessions">
           <Stack gap={3} pt={4}>
             {sessions.length === 0 ? (
               <Box

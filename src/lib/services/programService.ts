@@ -11,7 +11,7 @@ export async function listPrograms(): Promise<Program[]> {
 
 export async function getProgram(id: string): Promise<Program> {
   return pb.collection("regula_programs").getOne(id, {
-    expand: "parent,programs(parent)",
+    expand: "parent,regula_programs(parent)",
   }) as Promise<Program>;
 }
 

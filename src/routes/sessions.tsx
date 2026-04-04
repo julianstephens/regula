@@ -99,7 +99,7 @@ export default function Sessions() {
   );
 
   return (
-    <Stack gap={6}>
+    <Stack id="sessions" gap={6}>
       <Flex justify="space-between" align="center">
         <Heading size="lg">Sessions</Heading>
         <Button
@@ -113,7 +113,7 @@ export default function Sessions() {
 
       {/* Active timer */}
       {activeSessionId && activeStartedAt ? (
-        <Box>
+        <Box id="active-session">
           <Text fontWeight="medium" mb={3}>
             Active Session
           </Text>
@@ -143,7 +143,7 @@ export default function Sessions() {
           </HStack>
         </Box>
       ) : (
-        <Box w="full" p={4} borderWidth={1} borderRadius="md" bg="bg.subtle">
+        <Box id="new-session" w="full" p={4} borderWidth={1} borderRadius="md" bg="bg.subtle">
           <Text fontWeight="medium" mb={3}>
             Start New Session
           </Text>
@@ -172,7 +172,7 @@ export default function Sessions() {
       )}
 
       {/* Session history */}
-      <Stack gap={3}>
+      <Stack id="session-history" gap={3}>
         <Flex justify="space-between" align="center">
           <Heading size="md">History</Heading>
           <NativeSelect.Root w="140px">

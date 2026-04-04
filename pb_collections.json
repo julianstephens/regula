@@ -442,22 +442,6 @@
                 ]
             },
             {
-                "id": "sitm_prio001",
-                "name": "priority",
-                "type": "select",
-                "required": false,
-                "presentable": false,
-                "hidden": false,
-                "system": false,
-                "maxSelect": 1,
-                "values": [
-                    "low",
-                    "normal",
-                    "high",
-                    "critical"
-                ]
-            },
-            {
                 "id": "sitm_area001",
                 "name": "area",
                 "type": "relation",

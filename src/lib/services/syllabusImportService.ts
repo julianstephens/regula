@@ -132,14 +132,6 @@ export async function importSyllabi(
     }
   }
 
-  // Parse a date string like "Apr 5" or "Jun 21" relative to the term start year
-  function parseSessionDate(raw: string): Date | null {
-    const cleaned = raw.trim();
-    if (!cleaned || cleaned === "—") return null;
-    const d = new Date(`${cleaned} ${termStart.getFullYear()}`);
-    return isNaN(d.getTime()) ? null : d;
-  }
-
   function resolveResource(
     reading: string | undefined,
     areaId: string,
@@ -168,10 +160,8 @@ export async function importSyllabi(
     for (const track of syllabus.tracks) {
       for (let i = 0; i < track.sessions.length; i++) {
         const session = track.sessions[i];
-        // Prefer the explicit date from the table; fall back to index-based meeting date
-        const dueDate =
-          (session.date ? parseSessionDate(session.date) : null) ??
-          (i < meetingDates.length ? meetingDates[i] : null);
+        // Always use index-based meeting date; ignore any explicit date in the syllabus
+        const dueDate = i < meetingDates.length ? meetingDates[i] : null;
         const block = findBlock(dueDate);
 
         const notesParts: string[] = [];

@@ -34,6 +34,7 @@ export default function Login() {
 
   return (
     <Box
+      id="login"
       minH="100vh"
       display="flex"
       alignItems="center"

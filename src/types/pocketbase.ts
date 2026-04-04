@@ -32,23 +32,22 @@ export interface ResourcesRecord extends RecordModel {
 export interface StudyItemsRecord extends RecordModel {
   title: string;
   item_type:
-    | "reading"
-    | "writing"
-    | "memorization"
-    | "exercise"
-    | "review"
-    | "quiz"
-    | "exam"
-    | "paper"
-    | "other";
+  | "reading"
+  | "writing"
+  | "memorization"
+  | "exercise"
+  | "review"
+  | "quiz"
+  | "exam"
+  | "paper"
+  | "other";
   status:
-    | "planned"
-    | "available"
-    | "in_progress"
-    | "completed"
-    | "deferred"
-    | "cancelled";
-  priority: "low" | "normal" | "high" | "critical";
+  | "planned"
+  | "available"
+  | "in_progress"
+  | "completed"
+  | "deferred"
+  | "cancelled";
   area: string;
   program: string;
   resource: string;
@@ -63,12 +62,12 @@ export interface StudyItemsRecord extends RecordModel {
 export interface StudySessionsRecord extends RecordModel {
   study_item: string;
   session_type:
-    | "deep_work"
-    | "light_review"
-    | "planning"
-    | "reread"
-    | "exercise"
-    | "writing";
+  | "deep_work"
+  | "light_review"
+  | "planning"
+  | "reread"
+  | "exercise"
+  | "writing";
   outcome: "completed" | "partial" | "blocked" | "abandoned";
   started_at: string;
   ended_at: string;
@@ -81,14 +80,14 @@ export interface StudySessionsRecord extends RecordModel {
 export interface ItemEventsRecord extends RecordModel {
   study_item: string;
   event_type:
-    | "created"
-    | "scheduled"
-    | "started"
-    | "completed"
-    | "deferred"
-    | "reopened"
-    | "cancelled"
-    | "edited";
+  | "created"
+  | "scheduled"
+  | "started"
+  | "completed"
+  | "deferred"
+  | "reopened"
+  | "cancelled"
+  | "edited";
   notes: string;
   owner: string;
 }

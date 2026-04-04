@@ -18,7 +18,6 @@ export type ItemStatus =
   | "completed"
   | "deferred"
   | "cancelled";
-export type ItemPriority = "low" | "normal" | "high" | "critical";
 
 export type SessionType =
   | "deep_work"
@@ -72,7 +71,7 @@ export interface Program {
   updated: string;
   expand?: {
     parent?: Program;
-    "programs(parent)"?: Program[];
+    "regula_programs(parent)"?: Program[];
   };
 }
 
@@ -106,7 +105,6 @@ export interface StudyItem {
   title: string;
   item_type: ItemType;
   status: ItemStatus;
-  priority: ItemPriority;
   area: string;
   program: string;
   resource: string;
@@ -152,5 +150,5 @@ export interface ItemEvent {
   owner: string;
   created: string;
   updated: string;
-  expand?: { study_item?: StudyItem };
+  expand?: { study_item?: StudyItem; };
 }
