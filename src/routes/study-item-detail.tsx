@@ -57,7 +57,7 @@ export default function StudyItemDetail() {
     queryKey: ["item_events", id],
     queryFn: () =>
       pb.collection("regula_item_events").getFullList({
-        filter: `study_items ~ "${id}"`,
+        filter: `study_item = "${id}"`,
         sort: "-created",
       }) as Promise<ItemEvent[]>,
     enabled: !!id,

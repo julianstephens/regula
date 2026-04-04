@@ -96,7 +96,7 @@ export interface Resource {
   updated: string;
   expand?: {
     area?: Area;
-    "study_items(resource)"?: StudyItem[];
+    "regula_study_items(resource)"?: StudyItem[];
   };
 }
 

@@ -142,6 +142,10 @@ function parseTable(lines: string[]): ParsedTrack | null {
 
   const roles: ColumnRole[] = headerCells.map(detectColumnRole);
 
+  // If every column is unrecognised (e.g. "Session Structure", "Passage Scale"
+  // helper tables), this is not a session track — skip it.
+  if (roles.every((r) => r === "ignored")) return null;
+
   // lines[1] is separator — skip it
   const sessions: ParsedSession[] = [];
   let idx = 0;

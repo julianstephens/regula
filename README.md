@@ -65,13 +65,13 @@ Then open `http://localhost:5173`.
 
 ## Available scripts
 
-| Command | Description |
-| --- | --- |
-| `pnpm dev` | Start the Vite development server |
-| `pnpm build` | Type-check and create a production build |
-| `pnpm preview` | Preview the production build locally |
-| `pnpm lint` | Run ESLint |
-| `pnpm format` | Format the codebase with Prettier |
+| Command        | Description                              |
+| -------------- | ---------------------------------------- |
+| `pnpm dev`     | Start the Vite development server        |
+| `pnpm build`   | Type-check and create a production build |
+| `pnpm preview` | Preview the production build locally     |
+| `pnpm lint`    | Run ESLint                               |
+| `pnpm format`  | Format the codebase with Prettier        |
 
 ## Docker
 

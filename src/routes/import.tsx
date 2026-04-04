@@ -3,6 +3,7 @@ import { DEFAULT_BLOCK_WEEKS } from "@/lib/blocks";
 import { formatDate } from "@/lib/dates";
 import { listAreas } from "@/lib/services/areaService";
 import { getProgram } from "@/lib/services/programService";
+import { listResources } from "@/lib/services/resourceService";
 import { getSettings } from "@/lib/services/settingsService";
 import {
   checkExistingBlocks,
@@ -120,6 +121,9 @@ export default function Import() {
   const [step, setStep] = useState<Step>("upload");
   const [syllabi, setSyllabi] = useState<ParsedSyllabus[]>([]);
   const [areaMatches, setAreaMatches] = useState<Record<string, string>>({});
+  const [areaResources, setAreaResources] = useState<Record<string, string>>(
+    {},
+  );
   const [parseError, setParseError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [result, setResult] = useState<{
@@ -143,6 +147,11 @@ export default function Import() {
   const { data: areas = [] } = useQuery<Area[]>({
     queryKey: ["areas"],
     queryFn: listAreas,
+  });
+
+  const { data: allResources = [] } = useQuery({
+    queryKey: ["resources"],
+    queryFn: () => listResources(),
   });
 
   const globalBlockWeeks = settings?.block_weeks ?? DEFAULT_BLOCK_WEEKS;
@@ -172,6 +181,7 @@ export default function Import() {
         term: term!,
         syllabi,
         areaMatches,
+        areaResources,
         globalBlockWeeks,
       }),
     onSuccess: (data) => {
@@ -396,6 +406,9 @@ export default function Import() {
             {uniqueSlugs.map((slug) => {
               const matched = areaMatches[slug];
               const matchedArea = areas.find((a) => a.id === matched);
+              const areaResourceOptions = allResources.filter(
+                (r) => !r.area || r.area === matched,
+              );
               return (
                 <Box
                   key={slug}
@@ -421,6 +434,9 @@ export default function Import() {
                       )}
                     </Flex>
                     <Field.Root>
+                      <Field.Label fontSize="xs" color="fg.muted">
+                        Area
+                      </Field.Label>
                       <NativeSelect.Root size="sm">
                         <NativeSelect.Field
                           value={areaMatches[slug] ?? ""}
@@ -441,6 +457,32 @@ export default function Import() {
                         <NativeSelect.Indicator />
                       </NativeSelect.Root>
                     </Field.Root>
+                    {matched && (
+                      <Field.Root>
+                        <Field.Label fontSize="xs" color="fg.muted">
+                          Default resource
+                        </Field.Label>
+                        <NativeSelect.Root size="sm">
+                          <NativeSelect.Field
+                            value={areaResources[matched] ?? ""}
+                            onChange={(e) =>
+                              setAreaResources((prev) => ({
+                                ...prev,
+                                [matched]: e.target.value,
+                              }))
+                            }
+                          >
+                            <option value="">— None —</option>
+                            {areaResourceOptions.map((r) => (
+                              <option key={r.id} value={r.id}>
+                                {r.title}
+                              </option>
+                            ))}
+                          </NativeSelect.Field>
+                          <NativeSelect.Indicator />
+                        </NativeSelect.Root>
+                      </Field.Root>
+                    )}
                     {matchedArea && (
                       <Text fontSize="xs" color="fg.muted">
                         → {matchedArea.name}

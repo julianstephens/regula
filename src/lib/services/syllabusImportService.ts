@@ -16,6 +16,7 @@ export interface ImportParams {
   term: Program;
   syllabi: ParsedSyllabus[];
   areaMatches: Record<string, string>; // slug → area id
+  areaResources: Record<string, string>; // areaId → default resource id
   globalBlockWeeks: number;
 }
 
@@ -81,7 +82,8 @@ export async function checkExistingBlocks(termId: string): Promise<boolean> {
 export async function importSyllabi(
   params: ImportParams,
 ): Promise<ImportResult> {
-  const { term, syllabi, areaMatches, globalBlockWeeks } = params;
+  const { term, syllabi, areaMatches, areaResources, globalBlockWeeks } =
+    params;
   const termStart = new Date(term.start_date);
   const termEnd = new Date(term.end_date);
   const blockWeeks = term.block_weeks || globalBlockWeeks;
@@ -118,33 +120,46 @@ export async function importSyllabi(
 
   let itemsCreated = 0;
 
-  // Pre-load all resources and index by "areaId::title" for fast lookup
+  // Pre-load all resources and index for fast lookup
   const allResources = await listResources();
+  // areaId::title → resourceId (area-scoped exact title match)
   const resourceIndex = new Map<string, string>();
-  // Also track how many resources exist per area
+  // areaId → resourceId[] (fallback: area has exactly one resource)
   const resourcesByArea = new Map<string, string[]>();
+  // title → resourceId[] (fallback: title-only match regardless of area)
+  const resourceIndexByTitle = new Map<string, string[]>();
   for (const r of allResources) {
-    if (r.area && r.title) {
-      resourceIndex.set(`${r.area}::${r.title.toLowerCase()}`, r.id);
+    if (!r.title) continue;
+    const titleKey = r.title.toLowerCase();
+    if (r.area) {
+      resourceIndex.set(`${r.area}::${titleKey}`, r.id);
       const list = resourcesByArea.get(r.area) ?? [];
       list.push(r.id);
       resourcesByArea.set(r.area, list);
     }
+    const titleList = resourceIndexByTitle.get(titleKey) ?? [];
+    titleList.push(r.id);
+    resourceIndexByTitle.set(titleKey, titleList);
   }
 
   function resolveResource(
     reading: string | undefined,
     areaId: string,
   ): string | undefined {
-    // If a reading title is given, try an exact match first
     if (reading) {
-      const match = resourceIndex.get(`${areaId}::${reading.toLowerCase()}`);
-      if (match) return match;
+      const key = reading.toLowerCase();
+      // 1. Area-scoped exact title match
+      const areaMatch = resourceIndex.get(`${areaId}::${key}`);
+      if (areaMatch) return areaMatch;
+      // 2. Title-only match (resource may not have area set)
+      const titleMatches = resourceIndexByTitle.get(key);
+      if (titleMatches?.length === 1) return titleMatches[0];
     }
-    // Fall back: if the area has exactly one resource, always use it
-    const areaResources = resourcesByArea.get(areaId);
-    if (areaResources?.length === 1) return areaResources[0];
-    return undefined;
+    // 3. Fallback: area has exactly one resource
+    const areaResourceList = resourcesByArea.get(areaId);
+    if (areaResourceList?.length === 1) return areaResourceList[0];
+    // 4. Explicit per-area default chosen by the user
+    return areaResources[areaId] || undefined;
   }
 
   for (const syllabus of syllabi) {
@@ -165,8 +180,8 @@ export async function importSyllabi(
         const block = findBlock(dueDate);
 
         const notesParts: string[] = [];
-        if (session.inSession)
-          notesParts.push(`In-session: ${session.inSession}`);
+        if (session.reading) notesParts.push(`Reading: ${session.reading}`);
+        if (session.inSession) notesParts.push(`Task: ${session.inSession}`);
         const notes = notesParts.join("\n");
 
         const resourceId = !session.isSpecial

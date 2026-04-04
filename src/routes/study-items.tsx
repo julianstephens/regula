@@ -11,11 +11,14 @@ import {
   changeStatus,
   createStudyItem,
   listStudyItems,
+  updateStudyItem,
 } from "@/lib/services/studyItemService";
 import type { ItemStatus, StudyItem } from "@/types/domain";
 import {
   Box,
   Button,
+  Checkbox,
+  CloseButton,
   Flex,
   Heading,
   HStack,
@@ -35,6 +38,8 @@ export default function StudyItems() {
   const [programFilter, setProgramFilter] = useState("");
   const [sortBy, setSortBy] = useState("due_date");
   const [formLoading, setFormLoading] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkResourceId, setBulkResourceId] = useState("");
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["study_items", statusFilter, areaFilter, programFilter, sortBy],
@@ -79,6 +84,50 @@ export default function StudyItems() {
       void qc.invalidateQueries({ queryKey: ["study_items"] });
     },
   });
+
+  const bulkResourceMut = useMutation({
+    mutationFn: async ({
+      ids,
+      resourceId,
+    }: {
+      ids: string[];
+      resourceId: string;
+    }) => {
+      await Promise.all(
+        ids.map((id) => updateStudyItem(id, { resource: resourceId })),
+      );
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["study_items"] });
+      setSelectedIds(new Set());
+      setBulkResourceId("");
+    },
+  });
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === items.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(items.map((i: StudyItem) => i.id)));
+    }
+  };
+
+  const handleBulkResourceUpdate = () => {
+    if (!bulkResourceId || selectedIds.size === 0) return;
+    bulkResourceMut.mutate({
+      ids: Array.from(selectedIds),
+      resourceId: bulkResourceId,
+    });
+  };
 
   const handleCreate = async (data: Parameters<typeof createStudyItem>[0]) => {
     setFormLoading(true);
@@ -210,89 +259,167 @@ export default function StudyItems() {
           <Text>No items match the current filters.</Text>
         </Box>
       ) : (
-        <Table.Root variant="outline">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeader>Title</Table.ColumnHeader>
-              <Table.ColumnHeader>Status</Table.ColumnHeader>
-              <Table.ColumnHeader>Area</Table.ColumnHeader>
-              <Table.ColumnHeader>Due</Table.ColumnHeader>
-              <Table.ColumnHeader w={24} />
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {items.map((item: StudyItem) => (
-              <Table.Row
-                id={`study-item-${item.id}`}
-                key={item.id}
-                bg={
-                  isOverdue(item.due_date, item.status)
-                    ? "red.subtle"
-                    : undefined
-                }
-              >
-                <Table.Cell>
-                  <AppLink
-                    id={`study-item-link-${item.id}`}
-                    to={`/study-items/${item.id}`}
-                    color="colorPalette.fg"
-                    fontWeight="medium"
+        <Stack gap={2}>
+          {selectedIds.size > 0 && (
+            <HStack
+              id="bulk-action-toolbar"
+              p={3}
+              borderWidth={1}
+              borderRadius="md"
+              bg="bg.subtle"
+              gap={3}
+              flexWrap="wrap"
+            >
+              <Text fontSize="sm" fontWeight="medium" flexShrink={0}>
+                {selectedIds.size} item{selectedIds.size !== 1 ? "s" : ""}{" "}
+                selected
+              </Text>
+              <HStack gap={2} flex={1} flexWrap="wrap">
+                <NativeSelect.Root w="220px">
+                  <NativeSelect.Field
+                    value={bulkResourceId}
+                    onChange={(e) => setBulkResourceId(e.target.value)}
                   >
-                    {item.title}
-                  </AppLink>
-                </Table.Cell>
-                <Table.Cell>
-                  <StatusBadge status={item.status} />
-                </Table.Cell>
-                <Table.Cell color="fg.muted">
-                  {item.expand?.area?.name ?? "—"}
-                </Table.Cell>
-                <Table.Cell
-                  color={
+                    <option value="">Select resource…</option>
+                    {resources.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.title}
+                      </option>
+                    ))}
+                  </NativeSelect.Field>
+                  <NativeSelect.Indicator />
+                </NativeSelect.Root>
+                <Button
+                  size="sm"
+                  disabled={!bulkResourceId}
+                  loading={bulkResourceMut.isPending}
+                  onClick={handleBulkResourceUpdate}
+                >
+                  Update Resource
+                </Button>
+              </HStack>
+              <CloseButton
+                size="sm"
+                variant="ghost"
+                onClick={() => setSelectedIds(new Set())}
+              />
+            </HStack>
+          )}
+          <Table.Root variant="outline">
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader w={10}>
+                  <Checkbox.Root
+                    checked={
+                      items.length > 0 && selectedIds.size === items.length
+                        ? true
+                        : selectedIds.size > 0
+                          ? "indeterminate"
+                          : false
+                    }
+                    onCheckedChange={toggleSelectAll}
+                  >
+                    <Checkbox.HiddenInput />
+                    <Checkbox.Control />
+                  </Checkbox.Root>
+                </Table.ColumnHeader>
+                <Table.ColumnHeader>Title</Table.ColumnHeader>
+                <Table.ColumnHeader>Status</Table.ColumnHeader>
+                <Table.ColumnHeader>Area</Table.ColumnHeader>
+                <Table.ColumnHeader>Resource</Table.ColumnHeader>
+                <Table.ColumnHeader>Due</Table.ColumnHeader>
+                <Table.ColumnHeader w={24} />
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {items.map((item: StudyItem) => (
+                <Table.Row
+                  id={`study-item-${item.id}`}
+                  key={item.id}
+                  bg={
                     isOverdue(item.due_date, item.status)
-                      ? "red.fg"
-                      : "fg.muted"
+                      ? "red.subtle"
+                      : undefined
                   }
                 >
-                  {formatDate(item.due_date)}
-                </Table.Cell>
-                <Table.Cell>
-                  <HStack gap={1} id={`study-item-actions-${item.id}`}>
-                    {item.status === "available" && (
-                      <Button
-                        size="xs"
-                        colorPalette="orange"
-                        variant="subtle"
-                        loading={statusMut.isPending}
-                        onClick={() =>
-                          statusMut.mutate({
-                            id: item.id,
-                            status: "in_progress",
-                          })
-                        }
-                      >
-                        Start
-                      </Button>
-                    )}
-                    {item.status === "in_progress" && (
-                      <Button
-                        size="xs"
-                        colorPalette="green"
-                        variant="subtle"
-                        loading={statusMut.isPending}
-                        onClick={() =>
-                          statusMut.mutate({ id: item.id, status: "completed" })
-                        }
-                      >
-                        Complete
-                      </Button>
-                    )}
-                  </HStack>
-                </Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
+                  <Table.Cell>
+                    <Checkbox.Root
+                      checked={selectedIds.has(item.id)}
+                      onCheckedChange={() => toggleSelect(item.id)}
+                    >
+                      <Checkbox.HiddenInput />
+                      <Checkbox.Control />
+                    </Checkbox.Root>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <AppLink
+                      id={`study-item-link-${item.id}`}
+                      to={`/study-items/${item.id}`}
+                      color="colorPalette.fg"
+                      fontWeight="medium"
+                    >
+                      {item.title}
+                    </AppLink>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <StatusBadge status={item.status} />
+                  </Table.Cell>
+                  <Table.Cell color="fg.muted">
+                    {item.expand?.area?.name ?? "—"}
+                  </Table.Cell>
+                  <Table.Cell color="fg.muted">
+                    {item.expand?.resource?.title ?? "—"}
+                  </Table.Cell>
+                  <Table.Cell
+                    color={
+                      isOverdue(item.due_date, item.status)
+                        ? "red.fg"
+                        : "fg.muted"
+                    }
+                  >
+                    {formatDate(item.due_date)}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <HStack gap={1} id={`study-item-actions-${item.id}`}>
+                      {item.status === "available" && (
+                        <Button
+                          size="xs"
+                          colorPalette="orange"
+                          variant="subtle"
+                          loading={statusMut.isPending}
+                          onClick={() =>
+                            statusMut.mutate({
+                              id: item.id,
+                              status: "in_progress",
+                            })
+                          }
+                        >
+                          Start
+                        </Button>
+                      )}
+                      {item.status === "in_progress" && (
+                        <Button
+                          size="xs"
+                          colorPalette="green"
+                          variant="subtle"
+                          loading={statusMut.isPending}
+                          onClick={() =>
+                            statusMut.mutate({
+                              id: item.id,
+                              status: "completed",
+                            })
+                          }
+                        >
+                          Complete
+                        </Button>
+                      )}
+                    </HStack>
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Root>
+        </Stack>
       )}
     </Stack>
   );

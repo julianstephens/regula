@@ -282,9 +282,9 @@ export default function Resources() {
                   )}
                 </Table.Cell>
                 <Table.Cell>
-                  {r.expand?.["study_items(resource)"]?.length ? (
+                  {r.expand?.["regula_study_items(resource)"]?.length ? (
                     <Stack gap={1}>
-                      {r.expand["study_items(resource)"].map((item) => (
+                      {r.expand["regula_study_items(resource)"].map((item) => (
                         <AppLink
                           key={item.id}
                           to={`/study-items/${item.id}`}

@@ -28,6 +28,29 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
+function AllClearCard() {
+  return (
+    <Box
+      p={6}
+      borderWidth={1}
+      borderRadius="lg"
+      bg="green.subtle"
+      borderColor="green.emphasized"
+      textAlign="center"
+    >
+      <Text fontSize="2xl" mb={1}>
+        ✓
+      </Text>
+      <Text fontWeight="semibold" color="green.fg" fontSize="md">
+        All caught up
+      </Text>
+      <Text color="fg.muted" fontSize="sm" mt={1}>
+        No overdue, in-progress, or scheduled items for today.
+      </Text>
+    </Box>
+  );
+}
+
 function StatCard({
   label,
   value,
@@ -260,6 +283,11 @@ export default function Dashboard() {
         <StatCard label="This Week Time" value={formatMinutes(weeklyMinutes)} />
         <StatCard label="Sessions This Week" value={weeklySessions.length} />
       </Grid>
+
+      {/* All clear state */}
+      {inProgress.length === 0 &&
+        todayItems.length === 0 &&
+        overdueItems.length === 0 && <AllClearCard />}
 
       {/* In Progress */}
       {inProgress.length > 0 && (
