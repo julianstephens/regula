@@ -422,7 +422,7 @@ export default function ProgramDetail() {
       >
         <Tabs.List>
           <Tabs.Trigger value="overview">Overview</Tabs.Trigger>
-          {program.type !== "term" && (
+          {program.type !== "term" && program.type !== "year" && (
             <Tabs.Trigger value="items">
               Study Items
               {total > 0 && (
@@ -561,7 +561,7 @@ export default function ProgramDetail() {
         </Tabs.Content>
 
         {/* Study Items */}
-        {program.type !== "term" && (
+        {program.type !== "term" && program.type !== "year" && (
           <Tabs.Content value="items">
             <Stack gap={3} pt={4}>
               {sortedItems.length === 0 ? (

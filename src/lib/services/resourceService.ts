@@ -8,7 +8,7 @@ export async function listResources(
   return pb.collection("regula_resources").getFullList({
     sort: "title",
     filter,
-    expand: "area,regula_study_items(resource)",
+    expand: "area,regula_study_items_via_resource",
   }) as Promise<Resource[]>;
 }
 

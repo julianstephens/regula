@@ -1,3 +1,7 @@
+export function toPbDate(date: Date): string {
+  return date.toISOString().replace("T", " ");
+}
+
 export function startOfDay(date: Date = new Date()): Date {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);

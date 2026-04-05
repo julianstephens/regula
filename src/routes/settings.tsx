@@ -1,6 +1,10 @@
 import { DEFAULT_BLOCK_WEEKS } from "@/lib/blocks";
 import pb from "@/lib/pocketbase";
-import { getSettings, updateSettings } from "@/lib/services/settingsService";
+import {
+  DEFAULT_AHEAD_WEEKS,
+  getSettings,
+  updateSettings,
+} from "@/lib/services/settingsService";
 import {
   Box,
   Button,
@@ -197,6 +201,70 @@ function BlockConfig() {
   );
 }
 
+function AheadWeeksConfig() {
+  const qc = useQueryClient();
+  const { data: settings } = useQuery({
+    queryKey: ["user_settings"],
+    queryFn: getSettings,
+  });
+  const [aheadWeeks, setAheadWeeks] = useState<number | undefined>(undefined);
+  const currentAhead =
+    aheadWeeks ?? settings?.ahead_weeks ?? DEFAULT_AHEAD_WEEKS;
+
+  const updateMut = useMutation({
+    mutationFn: (weeks: number) =>
+      updateSettings(settings!.id, { ahead_weeks: weeks }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["user_settings"] }),
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (settings) updateMut.mutate(currentAhead);
+  };
+
+  return (
+    <Box
+      as="form"
+      onSubmit={handleSubmit}
+      p={4}
+      borderWidth={1}
+      borderRadius="md"
+      bg="bg.subtle"
+      maxW="480px"
+      mx="auto"
+    >
+      <Stack gap={3}>
+        <Field.Root>
+          <Field.Label>Weeks ahead allowed</Field.Label>
+          <Field.HelperText>
+            How many weeks ahead of a planned item's scheduled date you can
+            start a session for it (1–2).
+          </Field.HelperText>
+          <Input
+            type="number"
+            min={1}
+            max={2}
+            step={1}
+            value={currentAhead}
+            onChange={(e) => setAheadWeeks(Number(e.target.value))}
+            maxW="80px"
+          />
+        </Field.Root>
+        <Box>
+          <Button
+            type="submit"
+            size="sm"
+            loading={updateMut.isPending}
+            disabled={!settings}
+          >
+            Save
+          </Button>
+        </Box>
+      </Stack>
+    </Box>
+  );
+}
+
 export default function Settings() {
   return (
     <Stack id="settings" gap={8}>
@@ -207,6 +275,13 @@ export default function Settings() {
           Block Configuration
         </Heading>
         <BlockConfig />
+      </Box>
+
+      <Box id="ahead-config" w="full">
+        <Heading size="md" mb={4}>
+          Study Ahead
+        </Heading>
+        <AheadWeeksConfig />
       </Box>
 
       <Box id="export-data" w="full">

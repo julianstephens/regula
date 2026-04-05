@@ -66,9 +66,9 @@ const router = createBrowserRouter([
         element: <Sessions />,
       },
       {
-        path: "timeline",
+        path: "syllabus",
         lazy: () =>
-          import("@/routes/timeline").then((m) => ({ Component: m.default })),
+          import("@/routes/syllabus").then((m) => ({ Component: m.default })),
       },
       {
         path: "settings",

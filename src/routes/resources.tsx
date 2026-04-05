@@ -282,18 +282,20 @@ export default function Resources() {
                   )}
                 </Table.Cell>
                 <Table.Cell>
-                  {r.expand?.["regula_study_items(resource)"]?.length ? (
+                  {r.expand?.["regula_study_items_via_resource"]?.length ? (
                     <Stack gap={1}>
-                      {r.expand["regula_study_items(resource)"].map((item) => (
-                        <AppLink
-                          key={item.id}
-                          to={`/study-items/${item.id}`}
-                          fontSize="sm"
-                          color="colorPalette.fg"
-                        >
-                          {item.title}
-                        </AppLink>
-                      ))}
+                      {r.expand["regula_study_items_via_resource"].map(
+                        (item) => (
+                          <AppLink
+                            key={item.id}
+                            to={`/study-items/${item.id}`}
+                            fontSize="sm"
+                            color="colorPalette.fg"
+                          >
+                            {item.title}
+                          </AppLink>
+                        ),
+                      )}
                     </Stack>
                   ) : (
                     <Text color="fg.muted" fontSize="sm">

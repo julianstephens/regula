@@ -2,6 +2,8 @@ import { DEFAULT_BLOCK_WEEKS } from "@/lib/blocks";
 import pb from "@/lib/pocketbase";
 import type { UserSettings } from "@/types/domain";
 
+export const DEFAULT_AHEAD_WEEKS = 1;
+
 export async function getSettings(): Promise<UserSettings> {
   const records = (await pb
     .collection("regula_user_settings")
@@ -12,13 +14,14 @@ export async function getSettings(): Promise<UserSettings> {
   // Auto-create defaults on first call
   return pb.collection("regula_user_settings").create({
     block_weeks: DEFAULT_BLOCK_WEEKS,
+    ahead_weeks: DEFAULT_AHEAD_WEEKS,
     owner: pb.authStore.record!.id,
   }) as Promise<UserSettings>;
 }
 
 export async function updateSettings(
   id: string,
-  data: Partial<Pick<UserSettings, "block_weeks">>,
+  data: Partial<Pick<UserSettings, "block_weeks" | "ahead_weeks">>,
 ): Promise<UserSettings> {
   return pb
     .collection("regula_user_settings")

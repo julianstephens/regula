@@ -757,6 +757,18 @@
         "noDecimal": false
       },
       {
+        "id": "uset_awks001",
+        "name": "ahead_weeks",
+        "type": "number",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": 1,
+        "max": 2,
+        "noDecimal": false
+      },
+      {
         "id": "uset_owner01",
         "name": "owner",
         "type": "relation",

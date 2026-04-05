@@ -1,5 +1,5 @@
 import pb from "@/lib/pocketbase";
-import type { SessionOutcome, StudySession } from "@/types/domain";
+import type { SessionOutcome, SessionType, StudySession } from "@/types/domain";
 import { completeItem } from "./studyItemService";
 
 export interface SessionFilters {
@@ -12,11 +12,11 @@ export interface SessionFilters {
 export async function listSessions(
   filters: SessionFilters = {},
 ): Promise<StudySession[]> {
-  const parts: string[] = [];
+  const parts: string[] = ['ended_at != ""'];
   if (filters.studyItem) parts.push(`study_items ~ "${filters.studyItem}"`);
   if (filters.area) parts.push(`area = "${filters.area}"`);
-  if (filters.dateFrom) parts.push(`started_at >= "${filters.dateFrom}"`);
-  if (filters.dateTo) parts.push(`started_at <= "${filters.dateTo}"`);
+  if (filters.dateFrom) parts.push(`ended_at >= "${filters.dateFrom}"`);
+  if (filters.dateTo) parts.push(`ended_at <= "${filters.dateTo}"`);
   const filter = parts.join(" && ");
 
   return pb.collection("regula_study_sessions").getFullList({
@@ -24,6 +24,15 @@ export async function listSessions(
     filter,
     expand: "study_items,area",
   }) as Promise<StudySession[]>;
+}
+
+export async function getOpenSession(): Promise<StudySession | null> {
+  const results = (await pb.collection("regula_study_sessions").getFullList({
+    filter: 'started_at != "" && ended_at = ""',
+    sort: "-started_at",
+    expand: "study_items",
+  })) as StudySession[];
+  return results[0] ?? null;
 }
 
 export async function startSession(
@@ -37,7 +46,7 @@ export async function startSession(
       .collection("regula_study_items")
       .getOne(id)) as import("@/types/domain").StudyItem;
     if (!areaId) areaId = item.area;
-    if (item.status === "available") {
+    if (item.status === "available" || item.status === "planned") {
       await pb
         .collection("regula_study_items")
         .update(id, { status: "in_progress" });
@@ -57,6 +66,7 @@ export async function endSession(
   sessionId: string,
   outcome: SessionOutcome,
   notes?: string,
+  sessionType?: SessionType,
 ): Promise<StudySession> {
   const endedAt = new Date().toISOString();
   const session = await (pb
@@ -74,11 +84,17 @@ export async function endSession(
       outcome,
       duration_minutes: durationMinutes,
       notes: notes ?? "",
+      ...(sessionType ? { session_type: sessionType } : {}),
     }) as Promise<StudySession>);
 
   if (outcome === "completed") {
-    for (const itemId of session.study_items ?? []) {
-      await completeItem(itemId);
+    const itemIds = ([] as string[]).concat(session.study_items ?? []);
+    for (const itemId of itemIds) {
+      try {
+        await completeItem(itemId);
+      } catch (e) {
+        console.warn(`Failed to complete item ${itemId}:`, e);
+      }
     }
   }
 
@@ -94,7 +110,8 @@ export async function logSession(
   }) as Promise<StudySession>);
 
   if (data.outcome === "completed" && data.study_items?.length) {
-    for (const itemId of data.study_items) {
+    const itemIds = ([] as string[]).concat(data.study_items);
+    for (const itemId of itemIds) {
       await completeItem(itemId);
     }
   }

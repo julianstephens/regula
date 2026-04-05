@@ -78,6 +78,7 @@ export interface Program {
 export interface UserSettings {
   id: string;
   block_weeks: number;
+  ahead_weeks: number;
   owner: string;
   created: string;
   updated: string;
@@ -96,7 +97,7 @@ export interface Resource {
   updated: string;
   expand?: {
     area?: Area;
-    "regula_study_items(resource)"?: StudyItem[];
+    regula_study_items_via_resource?: StudyItem[];
   };
 }
 

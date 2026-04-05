@@ -83,6 +83,18 @@ export async function completeItem(id: string): Promise<StudyItem> {
   return item;
 }
 
+export async function listStudyItemsByPrograms(
+  programIds: string[],
+): Promise<StudyItem[]> {
+  if (programIds.length === 0) return [];
+  const filter = programIds.map((id) => `program = "${id}"`).join(" || ");
+  return pb.collection("regula_study_items").getFullList({
+    sort: "program,due_date",
+    filter,
+    expand: "area,resource",
+  }) as Promise<StudyItem[]>;
+}
+
 export async function deleteStudyItemsByProgram(
   programId: string,
 ): Promise<void> {
