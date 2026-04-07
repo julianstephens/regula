@@ -1,7 +1,11 @@
+import { CourseSessionCard } from "@/components/cards/CourseSessionCard";
 import { StatusBadge } from "@/components/cards/StatusBadge";
+import { BlockTermModal } from "@/components/forms/BlockTermModal";
 import { AppLink } from "@/components/ui/app-link";
 import { computeBlockEndDate, DEFAULT_BLOCK_WEEKS } from "@/lib/blocks";
 import { formatDate } from "@/lib/dates";
+import { listAreas } from "@/lib/services/areaService";
+import { listCourseSessions } from "@/lib/services/courseSessionService";
 import {
   deleteProgram,
   deleteProgramWithChildren,
@@ -10,11 +14,18 @@ import {
 } from "@/lib/services/programService";
 import { getSettings } from "@/lib/services/settingsService";
 import { listStudyItems } from "@/lib/services/studyItemService";
-import type { ItemStatus, Program, StudyItem } from "@/types/domain";
+import type {
+  Area,
+  CourseSession,
+  ItemStatus,
+  Program,
+  StudyItem,
+} from "@/types/domain";
 import {
   Badge,
   Box,
   Button,
+  Checkbox,
   Dialog,
   Field,
   Flex,
@@ -32,6 +43,45 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
+
+const ALL_DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+
+function DayCheckboxGroup({
+  label,
+  selected,
+  onChange,
+}: {
+  label: string;
+  selected: string[];
+  onChange: (days: string[]) => void;
+}) {
+  const toggle = (day: string) => {
+    onChange(
+      selected.includes(day)
+        ? selected.filter((d) => d !== day)
+        : [...selected, day],
+    );
+  };
+  return (
+    <Field.Root>
+      <Field.Label>{label}</Field.Label>
+      <HStack gap={2} flexWrap="wrap">
+        {ALL_DAYS.map((d) => (
+          <Checkbox.Root
+            key={d}
+            checked={selected.includes(d)}
+            onCheckedChange={() => toggle(d)}
+            size="sm"
+          >
+            <Checkbox.HiddenInput />
+            <Checkbox.Control />
+            <Checkbox.Label textTransform="capitalize">{d}</Checkbox.Label>
+          </Checkbox.Root>
+        ))}
+      </HStack>
+    </Field.Root>
+  );
+}
 
 const statusColor: Record<string, string> = {
   planned: "teal",
@@ -55,6 +105,7 @@ export default function ProgramDetail() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isBlockTermOpen, setIsBlockTermOpen] = useState(false);
   const [deleteChildren, setDeleteChildren] = useState(false);
   const [name, setName] = useState("");
   const [status, setStatus] = useState<Program["status"]>("planned");
@@ -62,6 +113,9 @@ export default function ProgramDetail() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [blockWeeksInput, setBlockWeeksInput] = useState("");
+  const [editAreaId, setEditAreaId] = useState("");
+  const [editMeetingDays, setEditMeetingDays] = useState<string[]>([]);
+  const [editMakeupDays, setEditMakeupDays] = useState<string[]>([]);
 
   const { data: settings } = useQuery({
     queryKey: ["user_settings"],
@@ -80,7 +134,7 @@ export default function ProgramDetail() {
     queryFn: async () => {
       if (program?.type === "term") {
         const childIds = (
-          (program.expand?.["regula_programs(parent)"] ?? []) as Program[]
+          (program.expand?.regula_programs_via_parent ?? []) as Program[]
         ).map((c) => c.id);
         const ids = [id!, ...childIds];
         const results = await Promise.all(
@@ -90,7 +144,19 @@ export default function ProgramDetail() {
       }
       return listStudyItems({ program: id });
     },
-    enabled: !!id,
+    enabled: !!id && program?.type !== "course",
+  });
+
+  const { data: courseSessions = [] } = useQuery<CourseSession[]>({
+    queryKey: ["course_sessions", id],
+    queryFn: () => listCourseSessions({ course: id! }),
+    enabled: !!id && program?.type === "course",
+  });
+
+  const { data: areas = [] } = useQuery<Area[]>({
+    queryKey: ["areas"],
+    queryFn: listAreas,
+    enabled: program?.type === "course",
   });
 
   const updateMut = useMutation({
@@ -113,7 +179,7 @@ export default function ProgramDetail() {
   if (isLoading) return <Text>Loading…</Text>;
   if (!program) return <Text>Program not found.</Text>;
 
-  const children = (program.expand?.["regula_programs(parent)"] ??
+  const children = (program.expand?.regula_programs_via_parent ??
     []) as Program[];
 
   const startEdit = () => {
@@ -125,6 +191,11 @@ export default function ProgramDetail() {
     setBlockWeeksInput(
       program.block_weeks != null ? String(program.block_weeks) : "",
     );
+    if (program.type === "course") {
+      setEditAreaId(program.area ?? "");
+      setEditMeetingDays(program.meeting_days ?? []);
+      setEditMakeupDays(program.makeup_days ?? []);
+    }
     setEditing(true);
   };
 
@@ -147,6 +218,11 @@ export default function ProgramDetail() {
     if (program.type === "block") {
       data.end_date = computedEndDate?.toISOString();
       data.block_weeks = blockWeeksInput ? Number(blockWeeksInput) : undefined;
+    } else if (program.type === "course") {
+      data.end_date = endDate || undefined;
+      data.area = editAreaId || undefined;
+      data.meeting_days = editMeetingDays.length ? editMeetingDays : undefined;
+      data.makeup_days = editMakeupDays.length ? editMakeupDays : undefined;
     } else {
       data.end_date = endDate || undefined;
     }
@@ -200,11 +276,20 @@ export default function ProgramDetail() {
         </Stack>
         <HStack gap={2} flexWrap="wrap">
           {program.type === "term" && (
-            <AppLink to={`/programs/${id}/import`}>
-              <Button size="sm" variant="outline">
-                Import Syllabi
+            <>
+              <AppLink to={`/programs/${id}/import`}>
+                <Button size="sm" variant="outline">
+                  Import Syllabi
+                </Button>
+              </AppLink>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsBlockTermOpen(true)}
+              >
+                Block Term
               </Button>
-            </AppLink>
+            </>
           )}
           <Button size="sm" variant="outline" onClick={startEdit}>
             Edit
@@ -323,6 +408,37 @@ export default function ProgramDetail() {
                     </Field.Root>
                   )}
                 </Stack>
+                {program.type === "course" && (
+                  <Stack gap={3}>
+                    <Field.Root>
+                      <Field.Label>Area</Field.Label>
+                      <NativeSelect.Root>
+                        <NativeSelect.Field
+                          value={editAreaId}
+                          onChange={(e) => setEditAreaId(e.target.value)}
+                        >
+                          <option value="">— select area —</option>
+                          {areas.map((a) => (
+                            <option key={a.id} value={a.id}>
+                              {a.name}
+                            </option>
+                          ))}
+                        </NativeSelect.Field>
+                        <NativeSelect.Indicator />
+                      </NativeSelect.Root>
+                    </Field.Root>
+                    <DayCheckboxGroup
+                      label="Meeting Days"
+                      selected={editMeetingDays}
+                      onChange={setEditMeetingDays}
+                    />
+                    <DayCheckboxGroup
+                      label="Makeup Days"
+                      selected={editMakeupDays}
+                      onChange={setEditMakeupDays}
+                    />
+                  </Stack>
+                )}
                 <Field.Root>
                   <Field.Label>Description</Field.Label>
                   <Textarea
@@ -414,6 +530,16 @@ export default function ProgramDetail() {
         </Dialog.Positioner>
       </Dialog.Root>
 
+      {/* Block Term modal */}
+      {program.type === "term" && (
+        <BlockTermModal
+          term={program}
+          globalBlockWeeks={globalDefault}
+          isOpen={isBlockTermOpen}
+          onClose={() => setIsBlockTermOpen(false)}
+        />
+      )}
+
       {/* Tabbed content */}
       <Tabs.Root
         id="program-detail-tabs"
@@ -422,16 +548,28 @@ export default function ProgramDetail() {
       >
         <Tabs.List>
           <Tabs.Trigger value="overview">Overview</Tabs.Trigger>
-          {program.type !== "term" && program.type !== "year" && (
-            <Tabs.Trigger value="items">
-              Study Items
-              {total > 0 && (
+          {program.type === "course" && (
+            <Tabs.Trigger value="schedule">
+              Schedule
+              {courseSessions.length > 0 && (
                 <Badge ml={2} variant="subtle" colorPalette="gray" size="sm">
-                  {total}
+                  {courseSessions.length}
                 </Badge>
               )}
             </Tabs.Trigger>
           )}
+          {program.type !== "term" &&
+            program.type !== "year" &&
+            program.type !== "course" && (
+              <Tabs.Trigger value="items">
+                Study Items
+                {total > 0 && (
+                  <Badge ml={2} variant="subtle" colorPalette="gray" size="sm">
+                    {total}
+                  </Badge>
+                )}
+              </Tabs.Trigger>
+            )}
           {children.length > 0 && (
             <Tabs.Trigger value="subprograms">
               Sub-programs
@@ -503,6 +641,34 @@ export default function ProgramDetail() {
                   </AppLink>
                 </Box>
               )}
+              {program.type === "course" && program.expand?.area && (
+                <Box>
+                  <Text fontSize="xs" color="fg.subtle" mb={1}>
+                    Area
+                  </Text>
+                  <Text fontWeight="medium">{program.expand.area.name}</Text>
+                </Box>
+              )}
+              {program.type === "course" && program.meeting_days?.length && (
+                <Box>
+                  <Text fontSize="xs" color="fg.subtle" mb={1}>
+                    Meeting Days
+                  </Text>
+                  <Text fontWeight="medium" textTransform="capitalize">
+                    {program.meeting_days.join(", ")}
+                  </Text>
+                </Box>
+              )}
+              {program.type === "course" && program.makeup_days?.length && (
+                <Box>
+                  <Text fontSize="xs" color="fg.subtle" mb={1}>
+                    Makeup Days
+                  </Text>
+                  <Text fontWeight="medium" textTransform="capitalize">
+                    {program.makeup_days.join(", ")}
+                  </Text>
+                </Box>
+              )}
             </Grid>
 
             {program.description && (
@@ -560,11 +726,11 @@ export default function ProgramDetail() {
           </Stack>
         </Tabs.Content>
 
-        {/* Study Items */}
-        {program.type !== "term" && program.type !== "year" && (
-          <Tabs.Content value="items">
+        {/* Schedule — course only */}
+        {program.type === "course" && (
+          <Tabs.Content value="schedule">
             <Stack gap={3} pt={4}>
-              {sortedItems.length === 0 ? (
+              {courseSessions.length === 0 ? (
                 <Box
                   p={8}
                   textAlign="center"
@@ -572,50 +738,85 @@ export default function ProgramDetail() {
                   borderRadius="md"
                   borderStyle="dashed"
                 >
-                  <Text color="fg.muted">
-                    No study items assigned to this program yet.
-                  </Text>
+                  <Text color="fg.muted">No sessions generated yet.</Text>
                 </Box>
               ) : (
-                <Table.Root variant="outline">
-                  <Table.Header>
-                    <Table.Row>
-                      <Table.ColumnHeader>Title</Table.ColumnHeader>
-                      <Table.ColumnHeader>Type</Table.ColumnHeader>
-
-                      <Table.ColumnHeader>Due</Table.ColumnHeader>
-                      <Table.ColumnHeader>Status</Table.ColumnHeader>
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {sortedItems.map((item) => (
-                      <Table.Row key={item.id}>
-                        <Table.Cell>
-                          <AppLink
-                            to={`/study-items/${item.id}`}
-                            color="colorPalette.fg"
-                            fontWeight="medium"
-                          >
-                            {item.title}
-                          </AppLink>
-                        </Table.Cell>
-                        <Table.Cell>
-                          <Badge variant="subtle">
-                            {item.item_type || "—"}
-                          </Badge>
-                        </Table.Cell>
-                        <Table.Cell>{formatDate(item.due_date)}</Table.Cell>
-                        <Table.Cell>
-                          <StatusBadge status={item.status} />
-                        </Table.Cell>
-                      </Table.Row>
-                    ))}
-                  </Table.Body>
-                </Table.Root>
+                <Stack gap={2}>
+                  {courseSessions.map((session) => (
+                    <CourseSessionCard
+                      key={session.id}
+                      session={session}
+                      onUpdated={() =>
+                        void qc.invalidateQueries({
+                          queryKey: ["course_sessions", id],
+                        })
+                      }
+                    />
+                  ))}
+                </Stack>
               )}
             </Stack>
           </Tabs.Content>
         )}
+
+        {/* Study Items */}
+        {program.type !== "term" &&
+          program.type !== "year" &&
+          program.type !== "course" && (
+            <Tabs.Content value="items">
+              <Stack gap={3} pt={4}>
+                {sortedItems.length === 0 ? (
+                  <Box
+                    p={8}
+                    textAlign="center"
+                    borderWidth={1}
+                    borderRadius="md"
+                    borderStyle="dashed"
+                  >
+                    <Text color="fg.muted">
+                      No study items assigned to this program yet.
+                    </Text>
+                  </Box>
+                ) : (
+                  <Table.Root variant="outline">
+                    <Table.Header>
+                      <Table.Row>
+                        <Table.ColumnHeader>Title</Table.ColumnHeader>
+                        <Table.ColumnHeader>Type</Table.ColumnHeader>
+
+                        <Table.ColumnHeader>Due</Table.ColumnHeader>
+                        <Table.ColumnHeader>Status</Table.ColumnHeader>
+                      </Table.Row>
+                    </Table.Header>
+                    <Table.Body>
+                      {sortedItems.map((item) => (
+                        <Table.Row key={item.id}>
+                          <Table.Cell>
+                            <AppLink
+                              to={`/study-items/${item.id}`}
+                              color="colorPalette.fg"
+                              fontWeight="medium"
+                            >
+                              {item.title}
+                            </AppLink>
+                          </Table.Cell>
+                          <Table.Cell>
+                            <Badge variant="subtle">
+                              {item.item_type || "—"}
+                            </Badge>
+                          </Table.Cell>
+                          <Table.Cell>{formatDate(item.due_date)}</Table.Cell>
+                          <Table.Cell>
+                            <StatusBadge status={item.status} />
+                          </Table.Cell>
+                        </Table.Row>
+                      ))}
+                    </Table.Body>
+                  </Table.Root>
+                )}
+              </Stack>
+            </Tabs.Content>
+          )}
 
         {/* Sub-programs */}
         {children.length > 0 && (

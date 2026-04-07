@@ -1,16 +1,18 @@
 import { AppLink } from "@/components/ui/app-link";
 import { computeBlockEndDate, DEFAULT_BLOCK_WEEKS } from "@/lib/blocks";
+import { listAreas } from "@/lib/services/areaService";
 import {
   createProgram,
   deleteProgram,
   listPrograms,
 } from "@/lib/services/programService";
 import { getSettings } from "@/lib/services/settingsService";
-import type { Program } from "@/types/domain";
+import type { Area, Program } from "@/types/domain";
 import {
   Badge,
   Box,
   Button,
+  Checkbox,
   Field,
   Flex,
   Heading,
@@ -32,14 +34,55 @@ const statusColor: Record<string, string> = {
   archived: "orange",
 };
 
+const ALL_DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+
+function DayCheckboxGroup({
+  label,
+  selected,
+  onChange,
+}: {
+  label: string;
+  selected: string[];
+  onChange: (days: string[]) => void;
+}) {
+  const toggle = (day: string) => {
+    onChange(
+      selected.includes(day)
+        ? selected.filter((d) => d !== day)
+        : [...selected, day],
+    );
+  };
+  return (
+    <Field.Root>
+      <Field.Label>{label}</Field.Label>
+      <HStack gap={2} flexWrap="wrap">
+        {ALL_DAYS.map((d) => (
+          <Checkbox.Root
+            key={d}
+            checked={selected.includes(d)}
+            onCheckedChange={() => toggle(d)}
+            size="sm"
+          >
+            <Checkbox.HiddenInput />
+            <Checkbox.Control />
+            <Checkbox.Label textTransform="capitalize">{d}</Checkbox.Label>
+          </Checkbox.Root>
+        ))}
+      </HStack>
+    </Field.Root>
+  );
+}
+
 function ProgramForm({
   programs,
+  areas,
   onSubmit,
   loading,
   onCancel,
   globalDefault,
 }: {
   programs: Program[];
+  areas: Area[];
   onSubmit: (data: Partial<Program>) => Promise<unknown>;
   loading: boolean;
   onCancel: () => void;
@@ -53,6 +96,9 @@ function ProgramForm({
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [blockWeeksInput, setBlockWeeksInput] = useState("");
+  const [areaId, setAreaId] = useState("");
+  const [meetingDays, setMeetingDays] = useState<string[]>([]);
+  const [makeupDays, setMakeupDays] = useState<string[]>([]);
 
   const resolvedBlockWeeks = blockWeeksInput
     ? Number(blockWeeksInput)
@@ -75,6 +121,11 @@ function ProgramForm({
     if (type === "block") {
       data.end_date = computedEndDate?.toISOString();
       data.block_weeks = blockWeeksInput ? Number(blockWeeksInput) : undefined;
+    } else if (type === "course") {
+      data.end_date = endDate || undefined;
+      data.area = areaId || undefined;
+      data.meeting_days = meetingDays.length ? meetingDays : undefined;
+      data.makeup_days = makeupDays.length ? makeupDays : undefined;
     } else {
       data.end_date = endDate || undefined;
     }
@@ -203,6 +254,37 @@ function ProgramForm({
             </Field.Root>
           )}
         </Stack>
+        {type === "course" && (
+          <Stack gap={3}>
+            <Field.Root required>
+              <Field.Label>Area</Field.Label>
+              <NativeSelect.Root>
+                <NativeSelect.Field
+                  value={areaId}
+                  onChange={(e) => setAreaId(e.target.value)}
+                >
+                  <option value="">— select area —</option>
+                  {areas.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </NativeSelect.Field>
+                <NativeSelect.Indicator />
+              </NativeSelect.Root>
+            </Field.Root>
+            <DayCheckboxGroup
+              label="Meeting Days"
+              selected={meetingDays}
+              onChange={setMeetingDays}
+            />
+            <DayCheckboxGroup
+              label="Makeup Days"
+              selected={makeupDays}
+              onChange={setMakeupDays}
+            />
+          </Stack>
+        )}
         <Field.Root>
           <Field.Label>Description</Field.Label>
           <Textarea
@@ -240,6 +322,11 @@ export default function Programs() {
     queryFn: listPrograms,
   });
 
+  const { data: areas = [] } = useQuery<Area[]>({
+    queryKey: ["areas"],
+    queryFn: listAreas,
+  });
+
   const createMut = useMutation({
     mutationFn: createProgram,
     onSuccess: () => {
@@ -270,6 +357,7 @@ export default function Programs() {
       {creating && (
         <ProgramForm
           programs={programs}
+          areas={areas}
           loading={createMut.isPending}
           onCancel={() => setCreating(false)}
           onSubmit={(data) => createMut.mutateAsync(data)}
@@ -295,72 +383,74 @@ export default function Programs() {
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            {programs.map((p) => (
-              <Table.Row key={p.id}>
-                <Table.Cell>
-                  <AppLink
-                    to={`/programs/${p.id}`}
-                    color="colorPalette.fg"
-                    fontWeight="medium"
-                  >
-                    {p.name}
-                  </AppLink>
-                </Table.Cell>
-                <Table.Cell>
-                  <Badge variant="subtle">{p.type}</Badge>
-                </Table.Cell>
-                <Table.Cell>
-                  <Badge
-                    colorPalette={statusColor[p.status] ?? "gray"}
-                    variant="subtle"
-                  >
-                    {p.status}
-                  </Badge>
-                </Table.Cell>
-                <Table.Cell color="fg.muted">
-                  {p.expand?.parent?.name ?? "—"}
-                </Table.Cell>
-                <Table.Cell>
-                  <HStack gap={3} justify="flex-end">
+            {programs
+              .filter((p) => p.type !== "course")
+              .map((p) => (
+                <Table.Row key={p.id}>
+                  <Table.Cell>
                     <AppLink
                       to={`/programs/${p.id}`}
-                      fontSize="sm"
                       color="colorPalette.fg"
+                      fontWeight="medium"
                     >
-                      View
+                      {p.name}
                     </AppLink>
-                    {deletingId === p.id ? (
-                      <HStack gap={1}>
-                        <Button
-                          size="xs"
-                          colorPalette="red"
-                          loading={deleteMut.isPending}
-                          onClick={() => deleteMut.mutate(p.id)}
-                        >
-                          Confirm
-                        </Button>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Badge variant="subtle">{p.type}</Badge>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Badge
+                      colorPalette={statusColor[p.status] ?? "gray"}
+                      variant="subtle"
+                    >
+                      {p.status}
+                    </Badge>
+                  </Table.Cell>
+                  <Table.Cell color="fg.muted">
+                    {p.expand?.parent?.name ?? "—"}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <HStack gap={3} justify="flex-end">
+                      <AppLink
+                        to={`/programs/${p.id}`}
+                        fontSize="sm"
+                        color="colorPalette.fg"
+                      >
+                        View
+                      </AppLink>
+                      {deletingId === p.id ? (
+                        <HStack gap={1}>
+                          <Button
+                            size="xs"
+                            colorPalette="red"
+                            loading={deleteMut.isPending}
+                            onClick={() => deleteMut.mutate(p.id)}
+                          >
+                            Confirm
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            onClick={() => setDeletingId(null)}
+                          >
+                            Cancel
+                          </Button>
+                        </HStack>
+                      ) : (
                         <Button
                           size="xs"
                           variant="ghost"
-                          onClick={() => setDeletingId(null)}
+                          colorPalette="red"
+                          onClick={() => setDeletingId(p.id)}
                         >
-                          Cancel
+                          Delete
                         </Button>
-                      </HStack>
-                    ) : (
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        colorPalette="red"
-                        onClick={() => setDeletingId(p.id)}
-                      >
-                        Delete
-                      </Button>
-                    )}
-                  </HStack>
-                </Table.Cell>
-              </Table.Row>
-            ))}
+                      )}
+                    </HStack>
+                  </Table.Cell>
+                </Table.Row>
+              ))}
           </Table.Body>
         </Table.Root>
       )}

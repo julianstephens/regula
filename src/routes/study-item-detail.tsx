@@ -116,13 +116,13 @@ export default function StudyItemDetail() {
       >
         <Stack gap={1}>
           <AppLink
-            to="/study-items"
+            to="/homework"
             mb="6"
             alignSelf="flex-start"
             color="fg.muted"
             fontSize="sm"
           >
-            ← Study Items
+            ← Homework &amp; Revision
           </AppLink>
           <HStack flexWrap="wrap" gap={2}>
             <Heading size="lg">{item.title}</Heading>

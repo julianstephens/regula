@@ -1,13 +1,15 @@
+import ErrorBoundary from "@/components/feedback/ErrorBoundary";
 import pb from "@/lib/pocketbase";
 import Login from "@/routes/login";
 import Root from "@/routes/root";
-import Sessions from "@/routes/sessions";
 import { createBrowserRouter, redirect } from "react-router";
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <Root />,
+    errorElement: <ErrorBoundary />,
+    HydrateFallback: () => null,
     loader: async () => {
       if (!pb.authStore.isValid) {
         return redirect("/login");
@@ -38,7 +40,7 @@ const router = createBrowserRouter([
           import("@/routes/import").then((m) => ({ Component: m.default })),
       },
       {
-        path: "areas",
+        path: "courses",
         lazy: () =>
           import("@/routes/areas").then((m) => ({ Component: m.default })),
       },
@@ -48,9 +50,9 @@ const router = createBrowserRouter([
           import("@/routes/resources").then((m) => ({ Component: m.default })),
       },
       {
-        path: "study-items",
+        path: "homework",
         lazy: () =>
-          import("@/routes/study-items").then((m) => ({
+          import("@/routes/homework").then((m) => ({
             Component: m.default,
           })),
       },
@@ -62,8 +64,9 @@ const router = createBrowserRouter([
           })),
       },
       {
-        path: "sessions",
-        element: <Sessions />,
+        path: "calendar",
+        lazy: () =>
+          import("@/routes/calendar").then((m) => ({ Component: m.default })),
       },
       {
         path: "syllabus",

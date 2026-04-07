@@ -58,7 +58,13 @@ function ResourceRow({ resource }: { resource: Resource }) {
   );
 }
 
-function BlockCard({ block, items }: { block: Program; items: StudyItem[] }) {
+function CourseCard({
+  course,
+  items,
+}: {
+  course: Program;
+  items: StudyItem[];
+}) {
   // Build area → resources map preserving insertion order
   const areaResourceMap = new Map<
     string,
@@ -87,17 +93,17 @@ function BlockCard({ block, items }: { block: Program; items: StudyItem[] }) {
     <Card.Root variant="outline">
       <Card.Header pb={2}>
         <Flex justify="space-between" align="baseline" wrap="wrap" gap={2}>
-          <Heading size="sm">{block.name}</Heading>
+          <Heading size="sm">{course.name}</Heading>
           <Text fontSize="xs" color="fg.muted">
-            {formatDate(block.start_date)}
-            {block.end_date ? ` – ${formatDate(block.end_date)}` : ""}
+            {formatDate(course.start_date)}
+            {course.end_date ? ` – ${formatDate(course.end_date)}` : ""}
           </Text>
         </Flex>
       </Card.Header>
       <Card.Body pt={0}>
         {items.length === 0 ? (
           <Text fontSize="sm" color="fg.muted">
-            No items scheduled
+            No resources scheduled
           </Text>
         ) : (
           <Stack gap={4}>
@@ -180,17 +186,17 @@ export default function Syllabus() {
     enabled: !!effectiveTermId,
   });
 
-  const blocks: Program[] = (
-    (term?.expand?.["regula_programs(parent)"] as Program[] | undefined) ?? []
+  const courses: Program[] = (
+    (term?.expand?.regula_programs_via_parent as Program[] | undefined) ?? []
   )
-    .filter((p) => p.type === "block")
+    .filter((p) => p.type === "course")
     .sort(
       (a, b) =>
         new Date(a.start_date).getTime() - new Date(b.start_date).getTime(),
     );
 
   const allProgramIds = effectiveTermId
-    ? [effectiveTermId, ...blocks.map((b) => b.id)]
+    ? [effectiveTermId, ...courses.map((c) => c.id)]
     : [];
 
   const { data: items = [], isLoading: itemsLoading } = useQuery({
@@ -198,8 +204,6 @@ export default function Syllabus() {
     queryFn: () => listStudyItemsByPrograms(allProgramIds),
     enabled: !!effectiveTermId && !termLoading,
   });
-
-  const termItems = items.filter((i) => i.program === effectiveTermId);
 
   const isLoading = programsLoading || (!!effectiveTermId && termLoading);
 
@@ -274,33 +278,25 @@ export default function Syllabus() {
             </Card.Body>
           </Card.Root>
 
-          {/* Block sections */}
+          {/* Course sections */}
           {itemsLoading ? (
             <Flex justify="center" py={8}>
               <Spinner />
             </Flex>
           ) : (
             <Stack gap={4}>
-              {blocks.length === 0 && termItems.length === 0 ? (
+              {courses.length === 0 ? (
                 <Text fontSize="sm" color="fg.muted">
-                  No blocks or items in this term.
+                  No courses in this term.
                 </Text>
               ) : (
-                <>
-                  {blocks.map((block) => (
-                    <BlockCard
-                      key={block.id}
-                      block={block}
-                      items={items.filter((i) => i.program === block.id)}
-                    />
-                  ))}
-                  {termItems.length > 0 && (
-                    <BlockCard
-                      block={{ ...term, name: "General" }}
-                      items={termItems}
-                    />
-                  )}
-                </>
+                courses.map((course) => (
+                  <CourseCard
+                    key={course.id}
+                    course={course}
+                    items={items.filter((i) => i.program === course.id)}
+                  />
+                ))
               )}
             </Stack>
           )}

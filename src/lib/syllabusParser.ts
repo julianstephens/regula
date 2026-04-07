@@ -13,11 +13,18 @@ export interface ParsedTrack {
   sessions: ParsedSession[];
 }
 
+export interface ParsedPaper {
+  title: string;
+  description?: string;
+  length?: string;
+}
+
 export interface ParsedSyllabus {
   area: string;
   term: string;
   meetingDays: number[]; // JS getDay() values
   tracks: ParsedTrack[];
+  papers: ParsedPaper[];
   filename: string;
 }
 
@@ -119,6 +126,8 @@ function detectColumnRole(header: string): ColumnRole {
     h.includes("sections")
   )
     return "reading";
+  // Homework must be checked before inSession because "homework" contains "work"
+  if (h.includes("homework") || h.includes("reconstruction")) return "homework";
   if (
     h.includes("in-session") ||
     h.includes("in session") ||
@@ -127,7 +136,6 @@ function detectColumnRole(header: string): ColumnRole {
     h.includes("work")
   )
     return "inSession";
-  if (h.includes("homework") || h.includes("reconstruction")) return "homework";
   return "ignored";
 }
 
@@ -219,6 +227,53 @@ function parseTable(lines: string[]): ParsedTrack | null {
   return { sessions };
 }
 
+function parsePapersTable(lines: string[]): ParsedPaper[] {
+  if (lines.length < 3) return [];
+  const headerCells = lines[0]
+    .split("|")
+    .map((c) => c.trim())
+    .filter((c) => c.length > 0);
+  // Only treat this as a papers table if it has an "Assignment" column
+  // that is NOT a session-work column (e.g. "In-Session Assignment")
+  const assignmentCol = headerCells.findIndex((h) => {
+    const hl = h.toLowerCase();
+    return hl.includes("assignment") && !hl.includes("session");
+  });
+  if (assignmentCol < 0) return [];
+  const descriptionCol = headerCells.findIndex((h) =>
+    h.toLowerCase().includes("description"),
+  );
+  const lengthCol = headerCells.findIndex(
+    (h) => h.toLowerCase() === "length" || h.toLowerCase().includes("pages"),
+  );
+
+  const papers: ParsedPaper[] = [];
+  for (let i = 2; i < lines.length; i++) {
+    const rawCells = lines[i].split("|");
+    const trimmed = rawCells.slice(
+      lines[i].startsWith("|") ? 1 : 0,
+      lines[i].endsWith("|") ? rawCells.length - 1 : rawCells.length,
+    );
+    const cells = trimmed.map((c) => c.trim());
+    if (cells.every((c) => /^[-:]+$/.test(c) || c === "")) continue;
+    const raw = assignmentCol < cells.length ? cells[assignmentCol] : "";
+    const title = cleanCell(raw);
+    if (!title) continue;
+    papers.push({
+      title,
+      description:
+        descriptionCol >= 0 && descriptionCol < cells.length
+          ? cleanCell(cells[descriptionCol]) || undefined
+          : undefined,
+      length:
+        lengthCol >= 0 && lengthCol < cells.length
+          ? cleanCell(cells[lengthCol]) || undefined
+          : undefined,
+    });
+  }
+  return papers;
+}
+
 function extractTables(md: string): string[][] {
   const lines = md.split("\n");
   const tables: string[][] = [];
@@ -250,9 +305,18 @@ export function parseSyllabus(
   const meetingDays = parseMeetingDays(content);
   const tableLines = extractTables(content);
 
-  const tracks: ParsedTrack[] = tableLines
-    .map(parseTable)
-    .filter((t): t is ParsedTrack => t !== null);
+  const tracks: ParsedTrack[] = [];
+  const papers: ParsedPaper[] = [];
 
-  return { area, term, meetingDays, tracks, filename };
+  for (const lines of tableLines) {
+    const paperRows = parsePapersTable(lines);
+    if (paperRows.length > 0) {
+      papers.push(...paperRows);
+    } else {
+      const track = parseTable(lines);
+      if (track) tracks.push(track);
+    }
+  }
+
+  return { area, term, meetingDays, tracks, papers, filename };
 }

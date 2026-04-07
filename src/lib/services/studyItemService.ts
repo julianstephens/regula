@@ -34,11 +34,14 @@ export async function getStudyItem(id: string): Promise<StudyItem> {
 export async function createStudyItem(
   data: Partial<StudyItem>,
 ): Promise<StudyItem> {
-  const item = await (pb.collection("regula_study_items").create({
-    ...data,
-    status: data.status ?? "planned",
-    owner: pb.authStore.record!.id,
-  }) as Promise<StudyItem>);
+  const item = await (pb.collection("regula_study_items").create(
+    {
+      ...data,
+      status: data.status ?? "planned",
+      owner: pb.authStore.record!.id,
+    },
+    { requestKey: null },
+  ) as Promise<StudyItem>);
   await createEvent(item.id, "created");
   return item;
 }

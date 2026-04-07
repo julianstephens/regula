@@ -5,23 +5,25 @@ import {
   getBlockWeekNumber,
   getRestWeek,
 } from "@/lib/blocks";
-import { endOfDay, isOverdue, startOfDay, startOfWeek } from "@/lib/dates";
-import { formatMinutes } from "@/lib/format";
+import {
+  endOfDay,
+  formatDate,
+  isOverdue,
+  startOfDay,
+  toPbDate,
+} from "@/lib/dates";
 import pb from "@/lib/pocketbase";
-import { listAreas } from "@/lib/services/areaService";
+import { listCourseSessions } from "@/lib/services/courseSessionService";
 import { listPrograms } from "@/lib/services/programService";
 import { getSettings } from "@/lib/services/settingsService";
 import { listStudyItems } from "@/lib/services/studyItemService";
-import { listSessions } from "@/lib/services/studySessionService";
-import type { Program, StudyItem } from "@/types/domain";
+import type { CourseSession, Program, StudyItem } from "@/types/domain";
 import {
   Badge,
   Box,
-  Grid,
   Heading,
   HStack,
   Stack,
-  Stat,
   Table,
   Text,
 } from "@chakra-ui/react";
@@ -45,28 +47,8 @@ function AllClearCard() {
         All caught up
       </Text>
       <Text color="fg.muted" fontSize="sm" mt={1}>
-        No overdue, in-progress, or scheduled items for today.
+        No sessions today and no overdue assignments.
       </Text>
-    </Box>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  sub,
-}: {
-  label: string;
-  value: string | number;
-  sub?: string;
-}) {
-  return (
-    <Box p={4} borderWidth={1} borderRadius="lg" bg="bg.subtle">
-      <Stat.Root>
-        <Stat.Label>{label}</Stat.Label>
-        <Stat.ValueText>{value}</Stat.ValueText>
-        {sub && <Stat.HelpText>{sub}</Stat.HelpText>}
-      </Stat.Root>
     </Box>
   );
 }
@@ -139,41 +121,24 @@ export default function Dashboard() {
 
   const today = startOfDay();
   const todayEnd = endOfDay();
-  const weekStart = startOfWeek();
 
-  const { data: todayItems = [] } = useQuery<StudyItem[]>({
-    queryKey: ["dashboard", "today"],
+  // Next 7 days for upcoming homework
+  const weekEnd = new Date(today);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+  weekEnd.setHours(23, 59, 59, 999);
+
+  const { data: todaySessions = [] } = useQuery<CourseSession[]>({
+    queryKey: ["dashboard", "today_sessions"],
     queryFn: () =>
-      listStudyItems({
-        sort: "due_date",
-      }).then((items) =>
-        items.filter(
-          (i) =>
-            !["completed", "cancelled"].includes(i.status) &&
-            ((i.scheduled_date &&
-              new Date(i.scheduled_date) >= today &&
-              new Date(i.scheduled_date) <= todayEnd) ||
-              (i.status === "planned" &&
-                i.due_date &&
-                new Date(i.due_date) >= today &&
-                new Date(i.due_date) <= todayEnd)),
-        ),
-      ),
-  });
-
-  const { data: inProgress = [] } = useQuery<StudyItem[]>({
-    queryKey: ["dashboard", "in_progress"],
-    queryFn: () => listStudyItems({ status: "in_progress", sort: "-updated" }),
+      listCourseSessions({
+        dateFrom: toPbDate(today),
+        dateTo: toPbDate(todayEnd),
+      }),
   });
 
   const { data: allItems = [] } = useQuery<StudyItem[]>({
     queryKey: ["dashboard", "all"],
-    queryFn: () => listStudyItems({}),
-  });
-
-  const { data: weeklySessions = [] } = useQuery({
-    queryKey: ["dashboard", "weekly_sessions"],
-    queryFn: () => listSessions({ dateFrom: weekStart.toISOString() }),
+    queryFn: () => listStudyItems({ sort: "due_date" }),
   });
 
   const { data: settings } = useQuery({
@@ -191,36 +156,23 @@ export default function Dashboard() {
     (p) => p.type === "block" && p.status === "active",
   );
 
-  const { data: areas = [] } = useQuery({
-    queryKey: ["areas"],
-    queryFn: listAreas,
-  });
-
   const overdueItems = allItems.filter((i) => isOverdue(i.due_date, i.status));
-  const recentCompletions = allItems
-    .filter((i) => i.status === "completed" && i.completion_date)
-    .sort(
-      (a, b) =>
-        new Date(b.completion_date).getTime() -
-        new Date(a.completion_date).getTime(),
-    )
-    .slice(0, 5);
 
-  const weeklyMinutes = weeklySessions.reduce(
-    (s, sess) => s + (sess.duration_minutes ?? 0),
-    0,
+  const upcomingHomework = allItems.filter(
+    (i) =>
+      !["completed", "cancelled"].includes(i.status) &&
+      i.due_date &&
+      new Date(i.due_date) >= today &&
+      new Date(i.due_date) <= weekEnd,
   );
 
-  // Area summary: minutes this week per area
-  const areaSummary = areas
-    .map((area) => {
-      const mins = weeklySessions
-        .filter((s) => s.area === area.id)
-        .reduce((sum, s) => sum + (s.duration_minutes ?? 0), 0);
-      return { area, mins };
-    })
-    .filter((a) => a.mins > 0)
-    .sort((a, b) => b.mins - a.mins);
+  const inProgress = allItems.filter((i) => i.status === "in_progress");
+
+  const allClear =
+    todaySessions.length === 0 &&
+    overdueItems.length === 0 &&
+    inProgress.length === 0 &&
+    upcomingHomework.length === 0;
 
   // Realtime subscriptions for dashboard refresh
   useEffect(() => {
@@ -228,7 +180,7 @@ export default function Dashboard() {
     let unsub2: (() => void) | undefined;
 
     void pb
-      .collection("regula_study_sessions")
+      .collection("regula_course_sessions")
       .subscribe("*", () => {
         void qc.invalidateQueries({ queryKey: ["dashboard"] });
       })
@@ -246,7 +198,7 @@ export default function Dashboard() {
       });
 
     return () => {
-      void pb.collection("regula_study_sessions").unsubscribe("*");
+      void pb.collection("regula_course_sessions").unsubscribe("*");
       void pb.collection("regula_study_items").unsubscribe("*");
       unsub1?.();
       unsub2?.();
@@ -271,25 +223,50 @@ export default function Dashboard() {
         </Stack>
       )}
 
-      {/* Stats row */}
-      <Grid
-        id="dashboard-stats"
-        templateColumns="repeat(auto-fill, minmax(180px, 1fr))"
-        gap={4}
-      >
-        <StatCard label="In Progress" value={inProgress.length} />
-        <StatCard label="Today Scheduled" value={todayItems.length} />
-        <StatCard label="Overdue" value={overdueItems.length} />
-        <StatCard label="This Week Time" value={formatMinutes(weeklyMinutes)} />
-        <StatCard label="Sessions This Week" value={weeklySessions.length} />
-      </Grid>
+      {allClear && <AllClearCard />}
 
-      {/* All clear state */}
-      {inProgress.length === 0 &&
-        todayItems.length === 0 &&
-        overdueItems.length === 0 && <AllClearCard />}
+      {/* Today's sessions */}
+      {todaySessions.length > 0 && (
+        <Stack id="dashboard-today-sessions" gap={3}>
+          <Heading size="md">Today's Sessions</Heading>
+          <Stack gap={3}>
+            {todaySessions.map((cs) => (
+              <Box
+                key={cs.id}
+                p={4}
+                borderWidth={1}
+                borderRadius="md"
+                bg="bg.subtle"
+              >
+                <HStack justify="space-between" mb={cs.notes ? 2 : 0}>
+                  <Text fontWeight="semibold" fontSize="sm">
+                    {cs.expand?.course?.name ?? "—"}
+                  </Text>
+                  <Badge
+                    variant="subtle"
+                    colorPalette={
+                      cs.status === "completed"
+                        ? "green"
+                        : cs.status === "missed"
+                          ? "red"
+                          : "gray"
+                    }
+                  >
+                    {cs.status}
+                  </Badge>
+                </HStack>
+                {cs.notes && (
+                  <Text fontSize="sm" color="fg.muted" whiteSpace="pre-wrap">
+                    {cs.notes}
+                  </Text>
+                )}
+              </Box>
+            ))}
+          </Stack>
+        </Stack>
+      )}
 
-      {/* In Progress */}
+      {/* In progress */}
       {inProgress.length > 0 && (
         <Stack id="dashboard-in-progress" gap={3}>
           <Heading size="md">In Progress</Heading>
@@ -324,36 +301,6 @@ export default function Dashboard() {
         </Stack>
       )}
 
-      {/* Today Scheduled */}
-      {todayItems.length > 0 && (
-        <Stack id="dashboard-today-scheduled" gap={3}>
-          <Heading size="md">Today</Heading>
-          <Table.Root variant="outline">
-            <Table.Body>
-              {todayItems.map((item) => (
-                <Table.Row key={item.id}>
-                  <Table.Cell>
-                    <AppLink
-                      to={`/study-items/${item.id}`}
-                      fontWeight="medium"
-                      color="colorPalette.fg"
-                    >
-                      {item.title}
-                    </AppLink>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <StatusBadge status={item.status} />
-                  </Table.Cell>
-                  <Table.Cell color="fg.muted">
-                    {item.expand?.area?.name ?? "—"}
-                  </Table.Cell>
-                </Table.Row>
-              ))}
-            </Table.Body>
-          </Table.Root>
-        </Stack>
-      )}
-
       {/* Overdue */}
       {overdueItems.length > 0 && (
         <Stack id="dashboard-overdue" gap={3}>
@@ -373,11 +320,11 @@ export default function Dashboard() {
                       {item.title}
                     </AppLink>
                   </Table.Cell>
-                  <Table.Cell>
-                    <StatusBadge status={item.status} />
-                  </Table.Cell>
                   <Table.Cell color="fg.muted">
                     {item.expand?.area?.name ?? "—"}
+                  </Table.Cell>
+                  <Table.Cell color="red.fg" whiteSpace="nowrap">
+                    {formatDate(item.due_date)}
                   </Table.Cell>
                 </Table.Row>
               ))}
@@ -386,67 +333,44 @@ export default function Dashboard() {
         </Stack>
       )}
 
-      {/* Recent Completions */}
-      {recentCompletions.length > 0 && (
-        <Stack id="dashboard-recent-completions" gap={3}>
-          <Heading size="md">Recent Completions</Heading>
-          <Stack gap={2}>
-            {recentCompletions.map((item) => (
-              <HStack
-                key={item.id}
-                p={3}
-                borderWidth={1}
-                borderRadius="md"
-                bg="bg.subtle"
-                justify="space-between"
-              >
-                <AppLink
-                  to={`/study-items/${item.id}`}
-                  fontWeight="medium"
-                  color="colorPalette.fg"
-                >
-                  {item.title}
-                </AppLink>
-                <Badge colorPalette="green" variant="subtle">
-                  Completed
-                </Badge>
-              </HStack>
-            ))}
-          </Stack>
-        </Stack>
-      )}
-
-      {/* Area Summary */}
-      {areaSummary.length > 0 && (
-        <Stack id="dashboard-area-summary" gap={3}>
-          <Heading size="md">This Week by Area</Heading>
-          <HStack gap={4} flexWrap="wrap">
-            {areaSummary.map(({ area, mins }) => (
-              <Box
-                key={area.id}
-                p={3}
-                borderWidth={1}
-                borderRadius="md"
-                bg="bg.subtle"
-                minW="140px"
-              >
-                <HStack mb={1}>
-                  <Box
-                    w={3}
-                    h={3}
-                    borderRadius="sm"
-                    bg={area.color || "gray.400"}
-                  />
-                  <Text fontWeight="medium" fontSize="sm">
-                    {area.name}
-                  </Text>
-                </HStack>
-                <Text color="fg.muted" fontSize="sm">
-                  {formatMinutes(mins)}
-                </Text>
-              </Box>
-            ))}
-          </HStack>
+      {/* Upcoming homework (next 7 days) */}
+      {upcomingHomework.length > 0 && (
+        <Stack id="dashboard-upcoming" gap={3}>
+          <Heading size="md">Due This Week</Heading>
+          <Table.Root variant="outline">
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>Assignment</Table.ColumnHeader>
+                <Table.ColumnHeader>Area</Table.ColumnHeader>
+                <Table.ColumnHeader>Status</Table.ColumnHeader>
+                <Table.ColumnHeader>Due</Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {upcomingHomework.map((item) => (
+                <Table.Row key={item.id}>
+                  <Table.Cell>
+                    <AppLink
+                      to={`/study-items/${item.id}`}
+                      fontWeight="medium"
+                      color="colorPalette.fg"
+                    >
+                      {item.title}
+                    </AppLink>
+                  </Table.Cell>
+                  <Table.Cell color="fg.muted">
+                    {item.expand?.area?.name ?? "—"}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <StatusBadge status={item.status} />
+                  </Table.Cell>
+                  <Table.Cell color="fg.muted" whiteSpace="nowrap">
+                    {formatDate(item.due_date)}
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Root>
         </Stack>
       )}
     </Stack>

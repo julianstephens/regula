@@ -128,7 +128,7 @@
         "hidden": false,
         "system": false,
         "maxSelect": 1,
-        "values": ["year", "term", "block", "custom"]
+        "values": ["year", "term", "block", "custom", "course"]
       },
       {
         "id": "progs_stat001",
@@ -178,6 +178,41 @@
         "cascadeDelete": false,
         "minSelect": null,
         "maxSelect": 1
+      },
+      {
+        "id": "progs_area001",
+        "name": "area",
+        "type": "relation",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "areascolid00001",
+        "cascadeDelete": false,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "progs_mdays01",
+        "name": "meeting_days",
+        "type": "select",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 7,
+        "values": ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+      },
+      {
+        "id": "progs_mkdays1",
+        "name": "makeup_days",
+        "type": "select",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 7,
+        "values": ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
       },
       {
         "id": "progs_creat01",
@@ -446,7 +481,7 @@
         "hidden": false,
         "system": false,
         "collectionId": "progrscolid0001",
-        "cascadeDelete": false,
+        "cascadeDelete": true,
         "minSelect": null,
         "maxSelect": 1
       },
@@ -793,6 +828,97 @@
       },
       {
         "id": "uset_updat01",
+        "name": "updated",
+        "type": "autodate",
+        "system": true,
+        "presentable": false,
+        "hidden": false,
+        "onCreate": true,
+        "onUpdate": true
+      }
+    ],
+    "indexes": [],
+    "listRule": "owner = @request.auth.id",
+    "viewRule": "owner = @request.auth.id",
+    "createRule": "owner = @request.auth.id",
+    "updateRule": "owner = @request.auth.id",
+    "deleteRule": "owner = @request.auth.id"
+  },
+  {
+    "id": "csesscolid0001",
+    "name": "regula_course_sessions",
+    "type": "base",
+    "system": false,
+    "fields": [
+      {
+        "id": "csess_crs001",
+        "name": "course",
+        "type": "relation",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "progrscolid0001",
+        "cascadeDelete": true,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "csess_date01",
+        "name": "date",
+        "type": "date",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": "",
+        "max": ""
+      },
+      {
+        "id": "csess_note01",
+        "name": "notes",
+        "type": "text",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false
+      },
+      {
+        "id": "csess_stat01",
+        "name": "status",
+        "type": "select",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 1,
+        "values": ["scheduled", "completed", "missed", "made_up"]
+      },
+      {
+        "id": "csess_own001",
+        "name": "owner",
+        "type": "relation",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "_pb_users_auth_",
+        "cascadeDelete": false,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "csess_creat1",
+        "name": "created",
+        "type": "autodate",
+        "system": true,
+        "presentable": false,
+        "hidden": false,
+        "onCreate": true,
+        "onUpdate": false
+      },
+      {
+        "id": "csess_updat1",
         "name": "updated",
         "type": "autodate",
         "system": true,

@@ -2,6 +2,68 @@ import type { Program } from "@/types/domain";
 
 export const DEFAULT_BLOCK_WEEKS = 4;
 
+export interface BlockRange {
+  name: string;
+  start: Date;
+  end: Date;
+}
+
+/**
+ * Compute all block date ranges for a term.
+ * The final 7 days of the term are reserved as Exam Week.
+ * Each block is followed by a 7-day rest week before the next block starts.
+ */
+export function computeBlockRanges(
+  termStart: Date,
+  termEnd: Date,
+  blockWeeks: number,
+): BlockRange[] {
+  const ranges: BlockRange[] = [];
+  let blockStart = new Date(termStart);
+  blockStart.setHours(0, 0, 0, 0);
+  let n = 1;
+
+  // Reserve the final 7 days of the term as Exam Week
+  const blockableEnd = new Date(termEnd);
+  blockableEnd.setDate(blockableEnd.getDate() - 7);
+  blockableEnd.setHours(23, 59, 59, 999);
+
+  while (blockStart <= blockableEnd) {
+    const blockEnd = computeBlockEndDate(blockStart, blockWeeks);
+    const end = blockEnd > blockableEnd ? blockableEnd : blockEnd;
+    ranges.push({ name: `Block ${n}`, start: new Date(blockStart), end });
+    // Next block starts after 7-day rest week
+    blockStart = new Date(end);
+    blockStart.setDate(blockStart.getDate() + 8);
+    n++;
+  }
+
+  return ranges;
+}
+
+/**
+ * Compute the ideal term end date to exactly fit `nBlocks` complete blocks
+ * (each of `blockWeeks` weeks) separated by 7-day rest weeks, plus a final
+ * 7-day exam week.
+ *
+ * Layout: [block (blockWeeks*7 days)] [rest (7 days)] ... [exam week (7 days)]
+ * Total days = nBlocks * blockWeeks * 7 + (nBlocks - 1) * 7 + 7
+ *            = nBlocks * (blockWeeks + 1) * 7
+ */
+export function computeIdealTermEnd(
+  termStart: Date,
+  nBlocks: number,
+  blockWeeks: number,
+): Date {
+  const totalDays = nBlocks * (blockWeeks + 1) * 7;
+  const end = new Date(termStart);
+  end.setHours(0, 0, 0, 0);
+  // totalDays covers from day 0 (termStart) through day totalDays-1
+  end.setDate(end.getDate() + totalDays - 1);
+  end.setHours(23, 59, 59, 999);
+  return end;
+}
+
 /**
  * Compute a block program's end date.
  * end = startDate + (blockWeeks * 7) - 1 days (inclusive last day of the block).

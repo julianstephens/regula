@@ -1,56 +1,26 @@
-import { computeBlockEndDate } from "@/lib/blocks";
 import { toISODateString } from "@/lib/dates";
-import { createProgram, listPrograms } from "@/lib/services/programService";
+import {
+  listCourseSessions,
+  updateCourseSession,
+} from "@/lib/services/courseSessionService";
+import { createProgram } from "@/lib/services/programService";
 import { listResources } from "@/lib/services/resourceService";
 import { createStudyItem } from "@/lib/services/studyItemService";
 import type { ParsedSyllabus } from "@/lib/syllabusParser";
-import type { Program } from "@/types/domain";
-
-export interface BlockRange {
-  name: string;
-  start: Date;
-  end: Date;
-}
+import type { Area, CourseSession, ItemType, Program } from "@/types/domain";
 
 export interface ImportParams {
   term: Program;
   syllabi: ParsedSyllabus[];
   areaMatches: Record<string, string>; // slug → area id
   areaResources: Record<string, string>; // areaId → default resource id
-  globalBlockWeeks: number;
+  areas: Area[];
 }
 
 export interface ImportResult {
-  blocksCreated: number;
+  coursesCreated: number;
+  courseSessionsUpdated: number;
   itemsCreated: number;
-}
-
-export function computeBlockRanges(
-  termStart: Date,
-  termEnd: Date,
-  blockWeeks: number,
-): BlockRange[] {
-  const ranges: BlockRange[] = [];
-  let blockStart = new Date(termStart);
-  blockStart.setHours(0, 0, 0, 0);
-  let n = 1;
-
-  // Reserve the final 7 days of the term as Exam Week
-  const blockableEnd = new Date(termEnd);
-  blockableEnd.setDate(blockableEnd.getDate() - 7);
-  blockableEnd.setHours(23, 59, 59, 999);
-
-  while (blockStart <= blockableEnd) {
-    const blockEnd = computeBlockEndDate(blockStart, blockWeeks);
-    const end = blockEnd > blockableEnd ? blockableEnd : blockEnd;
-    ranges.push({ name: `Block ${n}`, start: new Date(blockStart), end });
-    // Next block starts after 7-day rest week
-    blockStart = new Date(end);
-    blockStart.setDate(blockStart.getDate() + 8);
-    n++;
-  }
-
-  return ranges;
 }
 
 export function generateMeetingDates(
@@ -74,52 +44,118 @@ export function generateMeetingDates(
   return dates;
 }
 
-export async function checkExistingBlocks(termId: string): Promise<boolean> {
-  const all = await listPrograms();
-  return all.some((p) => p.parent === termId && p.type === "block");
-}
-
 export async function importSyllabi(
   params: ImportParams,
 ): Promise<ImportResult> {
-  const { term, syllabi, areaMatches, areaResources, globalBlockWeeks } =
-    params;
+  const { term, syllabi, areaMatches, areaResources, areas } = params;
   const termStart = new Date(term.start_date);
   const termEnd = new Date(term.end_date);
-  const blockWeeks = term.block_weeks || globalBlockWeeks;
 
-  const blockRanges = computeBlockRanges(termStart, termEnd, blockWeeks);
-
-  // Create block Programs sequentially to preserve ordering
-  const blockPrograms: Program[] = [];
-  for (const range of blockRanges) {
-    const prog = await createProgram({
-      name: range.name,
-      type: "block",
-      status: "planned",
-      parent: term.id,
-      start_date: toISODateString(range.start),
-      end_date: toISODateString(range.end),
-      block_weeks: blockWeeks,
-      description: "",
-    });
-    blockPrograms.push(prog);
-  }
-
-  function findBlock(dueDate: Date | null): Program | null {
-    if (!dueDate) return null;
-    return (
-      blockPrograms.find((_bp, i) => {
-        const range = blockRanges[i];
-        return dueDate >= range.start && dueDate <= range.end;
-      }) ??
-      blockPrograms[blockPrograms.length - 1] ??
-      null
-    );
-  }
+  console.log("[import] start", {
+    term: term.name,
+    syllabi: syllabi.length,
+    termStart,
+    termEnd,
+  });
 
   let itemsCreated = 0;
 
+  // ── Helpers ─────────────────────────────────────────────────────────────
+
+  // "YYYY-MM-DD HH:mm:ss" or ISO → "YYYY-MM-DD"
+  function toDateKey(s: string): string {
+    return s.slice(0, 10);
+  }
+
+  // Map day integer (0=Sun…6=Sat) back to the abbreviation Program.meeting_days uses
+  const DAY_ABBRS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+
+  function isPlaceholder(s: string | undefined): boolean {
+    if (!s) return true;
+    return /^[-—–\s]+$/.test(s);
+  }
+
+  // Parse explicit date strings like "Apr 6 (Mon)" using the term year as a hint.
+  function parseSessionDate(
+    dateStr: string | undefined,
+    yearHint: number,
+  ): Date | null {
+    if (!dateStr || isPlaceholder(dateStr)) return null;
+    const match = /([A-Za-z]+)\s+(\d+)/.exec(dateStr);
+    if (!match) return null;
+    const candidate = new Date(`${match[1]} ${match[2]}, ${yearHint}`);
+    if (!isNaN(candidate.getTime())) return candidate;
+    // Try the following year for terms that cross a year boundary
+    const next = new Date(`${match[1]} ${match[2]}, ${yearHint + 1}`);
+    return isNaN(next.getTime()) ? null : next;
+  }
+
+  function detectHomeworkType(text: string): ItemType {
+    const t = text.toLowerCase();
+    if (/write|essay|paper|composition|draft/.test(t)) return "writing";
+    if (/read|review|passage|text|chapter/.test(t)) return "reading";
+    if (/exercise|problem|worksheet|practice|drill|question/.test(t))
+      return "exercise";
+    if (/memorize|memorise|memorization|recall|recite/.test(t))
+      return "memorization";
+    return "other";
+  }
+
+  // ── Course creation ──────────────────────────────────────────────────────
+
+  // Create course programs (and their sessions) for every syllabus that has
+  // meeting days defined. Must happen before study items so we can index the
+  // generated sessions for classwork notes.
+  let coursesCreated = 0;
+  const courseProgramsByArea = new Map<string, Program>();
+
+  for (const syllabus of syllabi) {
+    const areaId = areaMatches[syllabus.area];
+    if (!areaId || syllabus.meetingDays.length === 0) continue;
+
+    const areaName = areas.find((a) => a.id === areaId)?.name ?? syllabus.area;
+    const meetingDayAbbrs = syllabus.meetingDays.map((d) => DAY_ABBRS[d]);
+
+    console.log(
+      "[import] creating course for area:",
+      areaName,
+      meetingDayAbbrs,
+    );
+    const course = await createProgram({
+      name: areaName,
+      type: "course",
+      status: "planned",
+      parent: term.id,
+      area: areaId,
+      meeting_days: meetingDayAbbrs,
+      start_date: toISODateString(termStart),
+      end_date: toISODateString(termEnd),
+      description: "",
+    });
+    console.log("[import] course created:", course.id);
+
+    courseProgramsByArea.set(areaId, course);
+    coursesCreated++;
+  }
+
+  // ── Course-session index ─────────────────────────────────────────────────
+
+  // Build areaId → (dateKey → CourseSession) for O(1) classwork-note lookups
+  let courseSessionsUpdated = 0;
+  const courseSessionIndex = new Map<string, Map<string, CourseSession>>();
+
+  for (const [areaId, course] of courseProgramsByArea) {
+    console.log("[import] loading course sessions for course:", course.id);
+    const sessions = await listCourseSessions({ course: course.id });
+    console.log("[import] loaded", sessions.length, "sessions");
+    const byDate = new Map<string, CourseSession>();
+    for (const cs of sessions) {
+      byDate.set(toDateKey(cs.date), cs);
+    }
+    courseSessionIndex.set(areaId, byDate);
+  }
+
+  console.log("[import] loading resources");
   // Pre-load all resources and index for fast lookup
   const allResources = await listResources();
   // areaId::title → resourceId (area-scoped exact title match)
@@ -141,6 +177,8 @@ export async function importSyllabi(
     titleList.push(r.id);
     resourceIndexByTitle.set(titleKey, titleList);
   }
+
+  console.log("[import] resources loaded:", allResources.length);
 
   function resolveResource(
     reading: string | undefined,
@@ -166,59 +204,193 @@ export async function importSyllabi(
     const areaId = areaMatches[syllabus.area];
     if (!areaId) continue; // user chose to skip this area
 
+    console.log(
+      "[import] processing syllabus:",
+      syllabus.filename,
+      "areaId:",
+      areaId,
+    );
+
     const meetingDates = generateMeetingDates(
       termStart,
       termEnd,
       syllabus.meetingDays,
     );
+    console.log("[import] meetingDates:", meetingDates.length);
+
+    const sessionUpdates: Promise<unknown>[] = [];
+    const itemCreates: Promise<unknown>[] = [];
 
     for (const track of syllabus.tracks) {
+      // Accumulate in-class notes per date key so multiple sessions on the
+      // same day are combined into a single course-session update.
+      const notesAccum = new Map<string, string[]>();
+
+      // Pre-pass: resolve the calendar date for every session in the track so
+      // that homework items can be due at the *next* session's date.
+      // If a session has an explicit date outside the term bounds it gets null
+      // (skipped entirely). Index-based fallback is only used when there is no
+      // explicit date at all.
+      const sessionDates: (Date | null)[] = [];
+      let indexCounter = 0;
+      for (const s of track.sessions) {
+        const explicit = parseSessionDate(s.date, termStart.getFullYear());
+        let d: Date | null;
+        if (explicit !== null) {
+          // Explicit date: use it only if within the term, otherwise skip
+          d = explicit >= termStart && explicit <= termEnd ? explicit : null;
+        } else {
+          // No explicit date: assign by meeting index
+          d =
+            indexCounter < meetingDates.length
+              ? meetingDates[indexCounter]
+              : null;
+          indexCounter++;
+        }
+        sessionDates.push(d);
+      }
+
       for (let i = 0; i < track.sessions.length; i++) {
         const session = track.sessions[i];
-        // Always use index-based meeting date; ignore any explicit date in the syllabus
-        const dueDate = i < meetingDates.length ? meetingDates[i] : null;
-        const block = findBlock(dueDate);
+        const sessionDate = sessionDates[i];
+        const dueDateKey = sessionDate
+          ? sessionDate.toISOString().slice(0, 10)
+          : null;
 
-        const notesParts: string[] = [];
-        if (session.reading) notesParts.push(`Reading: ${session.reading}`);
-        if (session.inSession) notesParts.push(`Task: ${session.inSession}`);
-        const notes = notesParts.join("\n");
+        if (session.isSpecial) {
+          // Exam / quiz — single study item, nothing else
+          console.log(
+            "[import] special session:",
+            session.title,
+            session.specialType,
+          );
+          const course = courseProgramsByArea.get(areaId);
+          itemCreates.push(
+            createStudyItem({
+              title: session.title,
+              item_type: session.specialType ?? "quiz",
+              notes: "",
+              area: areaId,
+              program: course?.id ?? term.id,
+              due_date: sessionDate ? toISODateString(sessionDate) : undefined,
+            }),
+          );
+          itemsCreated++;
+          continue;
+        }
 
-        const resourceId = !session.isSpecial
-          ? resolveResource(session.reading, areaId)
+        // Accumulate in-class content (focus + reading + inSession) grouped by date
+        if (session.title || session.reading || session.inSession) {
+          const notesParts: string[] = [];
+          if (session.title) notesParts.push(`Focus: ${session.title}`);
+          if (session.reading) notesParts.push(`Reading: ${session.reading}`);
+          if (session.inSession)
+            notesParts.push(`In-Session: ${session.inSession}`);
+          if (dueDateKey) {
+            const existing = notesAccum.get(dueDateKey) ?? [];
+            existing.push(notesParts.join("\n"));
+            notesAccum.set(dueDateKey, existing);
+          }
+        }
+
+        // Study item: only create from explicit homework entries.
+        // Homework is due at the *next* session's date (fall back to current
+        // session's date for the last entry in the track).
+        const itemText = !isPlaceholder(session.homework)
+          ? session.homework
           : undefined;
 
-        await createStudyItem({
-          title: session.title,
-          item_type: session.isSpecial
-            ? (session.specialType ?? "quiz")
-            : "reading",
-          notes,
-          area: areaId,
-          program: block?.id ?? term.id,
-          due_date: dueDate ? toISODateString(dueDate) : undefined,
-          resource: resourceId,
-        });
-        itemsCreated++;
-
-        if (session.homework && !session.isSpecial) {
-          await createStudyItem({
-            title: `Homework: ${session.title}`,
-            item_type: "other",
-            notes: session.homework,
-            area: areaId,
-            program: block?.id ?? term.id,
-            due_date: dueDate ? toISODateString(dueDate) : undefined,
-            resource: resourceId,
-          });
+        if (itemText) {
+          const nextSessionDate = sessionDates[i + 1] ?? sessionDate;
+          const resourceId = resolveResource(undefined, areaId);
+          const course = courseProgramsByArea.get(areaId);
+          console.log("[import] study item:", itemText);
+          itemCreates.push(
+            createStudyItem({
+              title: itemText,
+              item_type: detectHomeworkType(itemText),
+              notes: itemText,
+              area: areaId,
+              program: course?.id ?? term.id,
+              due_date: nextSessionDate
+                ? toISODateString(nextSessionDate)
+                : undefined,
+              resource: resourceId,
+            }),
+          );
           itemsCreated++;
         }
+      }
+
+      // Emit one course-session update per unique date, combining same-day blocks
+      for (const [dateKey, blocks] of notesAccum) {
+        const notes = blocks.join("\n\n");
+        const cs = courseSessionIndex.get(areaId)?.get(dateKey);
+        console.log(
+          "[import] in-class notes for",
+          dateKey,
+          "blocks:",
+          blocks.length,
+          "cs found:",
+          !!cs,
+        );
+        if (cs) {
+          sessionUpdates.push(updateCourseSession(cs.id, { notes }));
+          courseSessionsUpdated++;
+        }
+      }
+    }
+
+    const allOps = [...sessionUpdates, ...itemCreates];
+    console.log(
+      "[import] firing batch:",
+      sessionUpdates.length,
+      "session updates,",
+      itemCreates.length,
+      "item creates",
+    );
+    for (let i = 0; i < allOps.length; i += 5) {
+      await Promise.all(allOps.slice(i, i + 5));
+    }
+    console.log("[import] batch complete for:", syllabus.filename);
+
+    // Papers → study items due on the last day of the term (exam week)
+    if (syllabus.papers.length > 0) {
+      const examDueDate = new Date(termEnd);
+      examDueDate.setHours(0, 0, 0, 0);
+      const course = courseProgramsByArea.get(areaId);
+      const paperOps = syllabus.papers.map((paper) => {
+        console.log("[import] paper:", paper.title);
+        itemsCreated++;
+        return createStudyItem({
+          title: paper.title,
+          item_type: "paper",
+          notes:
+            [
+              paper.description,
+              paper.length ? `Length: ${paper.length}` : undefined,
+            ]
+              .filter(Boolean)
+              .join("\n") || undefined,
+          area: areaId,
+          program: course?.id ?? term.id,
+          due_date: toISODateString(examDueDate),
+        });
+      });
+      for (let i = 0; i < paperOps.length; i += 5) {
+        await Promise.all(paperOps.slice(i, i + 5));
       }
     }
   }
 
+  console.log("[import] done", {
+    coursesCreated,
+    courseSessionsUpdated,
+    itemsCreated,
+  });
   return {
-    blocksCreated: blockPrograms.length,
+    coursesCreated,
+    courseSessionsUpdated,
     itemsCreated,
   };
 }

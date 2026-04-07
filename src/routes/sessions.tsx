@@ -144,7 +144,7 @@ export default function Sessions() {
 
   return (
     <Stack id="sessions" gap={6}>
-      <Heading size="lg">Sessions</Heading>
+      <Heading size="lg">Study Sessions</Heading>
 
       <Tabs.Root
         defaultValue={openSession ? "active" : "new"}

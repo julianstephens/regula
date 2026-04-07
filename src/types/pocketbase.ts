@@ -10,11 +10,14 @@ export interface AreasRecord extends RecordModel {
 export interface ProgramsRecord extends RecordModel {
   name: string;
   description: string;
-  type: "year" | "term" | "block" | "custom";
+  type: "year" | "term" | "block" | "custom" | "course";
   status: "planned" | "active" | "completed" | "archived";
   start_date: string;
   end_date: string;
   block_weeks?: number;
+  area?: string;
+  meeting_days?: string[];
+  makeup_days?: string[];
   parent: string;
   owner: string;
 }
@@ -60,7 +63,7 @@ export interface StudyItemsRecord extends RecordModel {
 }
 
 export interface StudySessionsRecord extends RecordModel {
-  study_item: string;
+  study_items: string[];
   session_type:
     | "deep_work"
     | "light_review"
@@ -94,6 +97,15 @@ export interface ItemEventsRecord extends RecordModel {
 
 export interface UserSettingsRecord extends RecordModel {
   block_weeks: number;
+  ahead_weeks?: number;
+  owner: string;
+}
+
+export interface CourseSessionsRecord extends RecordModel {
+  course: string;
+  date: string;
+  notes: string;
+  status: "scheduled" | "completed" | "missed" | "made_up";
   owner: string;
 }
 
@@ -105,4 +117,5 @@ export type CollectionRecords = {
   study_sessions: StudySessionsRecord;
   item_events: ItemEventsRecord;
   user_settings: UserSettingsRecord;
+  course_sessions: CourseSessionsRecord;
 };

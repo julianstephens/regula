@@ -1,3 +1,10 @@
+## v0.1.4
+
+- Improve dashboard UI to better display today's sessions, overdue items, and upcoming homework
+- Improve syllabus importing and parsing
+- Extract block-related logic into separate module
+- Add calendar view with courses and course sessions
+
 ## v0.1.3
 
 - Improve handling of study session items to ensure that sessions correctly process associated study items, including completing items when a session ends

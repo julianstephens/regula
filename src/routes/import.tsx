@@ -1,15 +1,9 @@
 import { AppLink } from "@/components/ui/app-link";
-import { DEFAULT_BLOCK_WEEKS } from "@/lib/blocks";
 import { formatDate } from "@/lib/dates";
 import { listAreas } from "@/lib/services/areaService";
 import { getProgram } from "@/lib/services/programService";
 import { listResources } from "@/lib/services/resourceService";
-import { getSettings } from "@/lib/services/settingsService";
-import {
-  checkExistingBlocks,
-  computeBlockRanges,
-  importSyllabi,
-} from "@/lib/services/syllabusImportService";
+import { importSyllabi } from "@/lib/services/syllabusImportService";
 import type { ParsedSyllabus } from "@/lib/syllabusParser";
 import { parseSyllabus } from "@/lib/syllabusParser";
 import type { Area } from "@/types/domain";
@@ -127,7 +121,8 @@ export default function Import() {
   const [parseError, setParseError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [result, setResult] = useState<{
-    blocksCreated: number;
+    coursesCreated: number;
+    courseSessionsUpdated: number;
     itemsCreated: number;
   } | null>(null);
 
@@ -137,11 +132,6 @@ export default function Import() {
     queryKey: ["programs", termId],
     queryFn: () => getProgram(termId!),
     enabled: !!termId,
-  });
-
-  const { data: settings } = useQuery({
-    queryKey: ["user_settings"],
-    queryFn: getSettings,
   });
 
   const { data: areas = [] } = useQuery<Area[]>({
@@ -154,26 +144,9 @@ export default function Import() {
     queryFn: () => listResources(),
   });
 
-  const globalBlockWeeks = settings?.block_weeks ?? DEFAULT_BLOCK_WEEKS;
-
   const uniqueSlugs = Array.from(new Set(syllabi.map((s) => s.area))).filter(
     Boolean,
   );
-
-  const { data: hasExistingBlocks, isLoading: checkingBlocks } = useQuery({
-    queryKey: ["existingBlocks", termId],
-    queryFn: () => checkExistingBlocks(termId!),
-    enabled: step === "preview" && !!termId,
-  });
-
-  const previewBlocks =
-    term?.start_date && term?.end_date
-      ? computeBlockRanges(
-          new Date(term.start_date),
-          new Date(term.end_date),
-          term.block_weeks || globalBlockWeeks,
-        )
-      : [];
 
   const importMut = useMutation({
     mutationFn: () =>
@@ -182,13 +155,12 @@ export default function Import() {
         syllabi,
         areaMatches,
         areaResources,
-        globalBlockWeeks,
+        areas,
       }),
     onSuccess: (data) => {
       setResult(data);
-      void qc.invalidateQueries({ queryKey: ["programs"] });
-      void qc.invalidateQueries({ queryKey: ["study_items"] });
       setStep("done");
+      void qc.invalidateQueries({ queryKey: ["programs"] });
     },
   });
 
@@ -508,154 +480,150 @@ export default function Import() {
       {/* ── Step 3: Preview ── */}
       {step === "preview" && (
         <Stack id="import-syllabi-preview" gap={6}>
-          {checkingBlocks ? (
-            <HStack gap={3} color="fg.muted">
-              <Spinner size="sm" />
-              <Text fontSize="sm">Checking existing blocks…</Text>
-            </HStack>
-          ) : hasExistingBlocks ? (
-            <Box
-              p={4}
-              borderWidth={1}
-              borderColor="red.300"
-              borderRadius="lg"
-              bg="red.subtle"
-            >
-              <Text color="red.600" fontWeight="semibold" fontSize="sm">
-                This term already has blocks
+          <Stack gap={3}>
+            <Heading size="sm">Courses to be created</Heading>
+            {syllabi.filter(
+              (s) => areaMatches[s.area] && s.meetingDays.length > 0,
+            ).length === 0 ? (
+              <Text fontSize="sm" color="fg.muted">
+                No syllabi have meeting days — no courses will be created.
               </Text>
-              <Text color="red.500" fontSize="sm" mt={1}>
-                Delete the existing block programs before importing.
-              </Text>
-            </Box>
-          ) : (
-            <>
-              <Stack gap={3}>
-                <Heading size="sm">Blocks to be created</Heading>
-                <Table.Root variant="outline" size="sm">
-                  <Table.Header>
-                    <Table.Row>
-                      <Table.ColumnHeader>Name</Table.ColumnHeader>
-                      <Table.ColumnHeader>Start</Table.ColumnHeader>
-                      <Table.ColumnHeader>End</Table.ColumnHeader>
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {previewBlocks.map((b) => (
-                      <Table.Row key={b.name}>
-                        <Table.Cell fontWeight="medium">{b.name}</Table.Cell>
-                        <Table.Cell color="fg.muted">
-                          {formatDate(b.start.toISOString())}
-                        </Table.Cell>
-                        <Table.Cell color="fg.muted">
-                          {formatDate(b.end.toISOString())}
-                        </Table.Cell>
-                      </Table.Row>
-                    ))}
-                    {term.end_date &&
-                      (() => {
-                        const examEnd = new Date(term.end_date);
-                        const examStart = new Date(examEnd);
-                        examStart.setDate(examEnd.getDate() - 6);
-                        return (
-                          <Table.Row key="exam-week">
-                            <Table.Cell>
-                              <HStack gap={2}>
-                                <Text fontStyle="italic" color="fg.muted">
-                                  Exam Week
-                                </Text>
-                                <Badge
-                                  size="sm"
-                                  variant="subtle"
-                                  colorPalette="orange"
-                                >
-                                  reserved
-                                </Badge>
-                              </HStack>
-                            </Table.Cell>
-                            <Table.Cell color="fg.muted">
-                              {formatDate(examStart.toISOString())}
-                            </Table.Cell>
-                            <Table.Cell color="fg.muted">
-                              {formatDate(examEnd.toISOString())}
-                            </Table.Cell>
-                          </Table.Row>
-                        );
-                      })()}
-                  </Table.Body>
-                </Table.Root>
-              </Stack>
-
-              <Stack gap={3}>
-                <Heading size="sm">Study items to be created</Heading>
-                <Stack gap={2}>
+            ) : (
+              <Table.Root variant="outline" size="sm">
+                <Table.Header>
+                  <Table.Row>
+                    <Table.ColumnHeader>Area</Table.ColumnHeader>
+                    <Table.ColumnHeader>Meeting days</Table.ColumnHeader>
+                    <Table.ColumnHeader>Date range</Table.ColumnHeader>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
                   {syllabi
-                    .filter((s) => areaMatches[s.area])
+                    .filter(
+                      (s) => areaMatches[s.area] && s.meetingDays.length > 0,
+                    )
                     .map((s) => {
                       const areaName =
                         areas.find((a) => a.id === areaMatches[s.area])?.name ??
-                        "";
-                      const totalSessions = s.tracks.reduce(
-                        (acc, t) => acc + t.sessions.length,
-                        0,
-                      );
-                      const homeworkCount = s.tracks.reduce(
-                        (acc, t) =>
-                          acc +
-                          t.sessions.filter(
-                            (sess) => sess.homework && !sess.isSpecial,
-                          ).length,
-                        0,
-                      );
-                      const totalItems = totalSessions + homeworkCount;
+                        s.area;
                       return (
-                        <Box
-                          key={s.filename}
-                          p={4}
-                          borderWidth={1}
-                          borderRadius="lg"
-                          bg="bg.subtle"
-                        >
-                          <Flex justify="space-between" align="center">
-                            <Stack gap={1}>
-                              <Text fontWeight="medium" fontSize="sm">
-                                {s.filename}
-                              </Text>
-                              <Text fontSize="xs" color="fg.muted">
-                                {areaName}
-                              </Text>
-                            </Stack>
-                            <HStack gap={3}>
-                              <Stack gap={0} align="flex-end">
-                                <Text
-                                  fontSize="lg"
-                                  fontWeight="bold"
-                                  lineHeight="1"
-                                >
-                                  {totalItems}
-                                </Text>
-                                <Text fontSize="xs" color="fg.muted">
-                                  items
-                                </Text>
-                              </Stack>
-                              {homeworkCount > 0 && (
+                        <Table.Row key={s.filename}>
+                          <Table.Cell fontWeight="medium">
+                            {areaName}
+                          </Table.Cell>
+                          <Table.Cell>
+                            <HStack gap={1} flexWrap="wrap">
+                              {s.meetingDays.map((d) => (
                                 <Badge
+                                  key={d}
                                   size="sm"
-                                  variant="subtle"
+                                  variant="outline"
                                   colorPalette="gray"
                                 >
-                                  +{homeworkCount} hw
+                                  {DAY_LABELS[d]}
                                 </Badge>
-                              )}
+                              ))}
                             </HStack>
-                          </Flex>
-                        </Box>
+                          </Table.Cell>
+                          <Table.Cell color="fg.muted">
+                            {term.start_date
+                              ? formatDate(term.start_date)
+                              : "—"}{" "}
+                            → {term.end_date ? formatDate(term.end_date) : "—"}
+                          </Table.Cell>
+                        </Table.Row>
                       );
                     })}
-                </Stack>
-              </Stack>
-            </>
-          )}
+                </Table.Body>
+              </Table.Root>
+            )}
+          </Stack>
+
+          <Stack gap={3}>
+            <Heading size="sm">Study items to be created</Heading>
+            <Stack gap={2}>
+              {syllabi
+                .filter((s) => areaMatches[s.area])
+                .map((s) => {
+                  const areaName =
+                    areas.find((a) => a.id === areaMatches[s.area])?.name ?? "";
+                  const allSessions = s.tracks.flatMap((t) => t.sessions);
+                  const homeworkCount = allSessions.filter(
+                    (sess) => sess.homework && !sess.isSpecial,
+                  ).length;
+                  const examCount = allSessions.filter(
+                    (sess) => sess.isSpecial,
+                  ).length;
+                  const inClassCount = allSessions.filter(
+                    (sess) =>
+                      !sess.isSpecial && (!!sess.reading || !!sess.inSession),
+                  ).length;
+                  const totalItems = homeworkCount + examCount;
+                  return (
+                    <Box
+                      key={s.filename}
+                      p={4}
+                      borderWidth={1}
+                      borderRadius="lg"
+                      bg="bg.subtle"
+                    >
+                      <Flex justify="space-between" align="center">
+                        <Stack gap={1}>
+                          <Text fontWeight="medium" fontSize="sm">
+                            {s.filename}
+                          </Text>
+                          <Text fontSize="xs" color="fg.muted">
+                            {areaName}
+                          </Text>
+                        </Stack>
+                        <HStack gap={2} flexWrap="wrap" justify="flex-end">
+                          <Stack gap={0} align="flex-end">
+                            <Text
+                              fontSize="lg"
+                              fontWeight="bold"
+                              lineHeight="1"
+                            >
+                              {totalItems}
+                            </Text>
+                            <Text fontSize="xs" color="fg.muted">
+                              items
+                            </Text>
+                          </Stack>
+                          {homeworkCount > 0 && (
+                            <Badge
+                              size="sm"
+                              variant="subtle"
+                              colorPalette="blue"
+                            >
+                              {homeworkCount} hw
+                            </Badge>
+                          )}
+                          {examCount > 0 && (
+                            <Badge
+                              size="sm"
+                              variant="subtle"
+                              colorPalette="orange"
+                            >
+                              {examCount} exam
+                              {examCount !== 1 ? "s" : ""}
+                            </Badge>
+                          )}
+                          {inClassCount > 0 && (
+                            <Badge
+                              size="sm"
+                              variant="subtle"
+                              colorPalette="purple"
+                            >
+                              {inClassCount} class notes
+                            </Badge>
+                          )}
+                        </HStack>
+                      </Flex>
+                    </Box>
+                  );
+                })}
+            </Stack>
+          </Stack>
 
           <HStack gap={2}>
             <Button size="sm" variant="ghost" onClick={() => setStep("match")}>
@@ -665,7 +633,6 @@ export default function Import() {
               size="sm"
               colorPalette="blue"
               loading={importMut.isPending}
-              disabled={!!hasExistingBlocks || checkingBlocks}
               onClick={() => {
                 setStep("importing");
                 importMut.mutate();
@@ -704,7 +671,7 @@ export default function Import() {
           <Stack gap={1} align="center">
             <Text fontWeight="medium">Importing syllabi…</Text>
             <Text fontSize="sm" color="fg.muted">
-              Creating blocks and study items. This may take a moment.
+              Creating courses and study items. This may take a moment.
             </Text>
           </Stack>
         </Flex>
@@ -727,7 +694,7 @@ export default function Import() {
             <Text color="green.700" fontWeight="semibold" fontSize="lg">
               Import complete
             </Text>
-            <HStack gap={6} justify="center" mt={4}>
+            <HStack gap={6} justify="center" mt={4} flexWrap="wrap">
               <Stack gap={0} align="center">
                 <Text
                   fontSize="2xl"
@@ -735,10 +702,10 @@ export default function Import() {
                   color="green.700"
                   lineHeight="1"
                 >
-                  {result.blocksCreated}
+                  {result.coursesCreated}
                 </Text>
                 <Text fontSize="sm" color="green.600">
-                  block{result.blocksCreated !== 1 ? "s" : ""} created
+                  course{result.coursesCreated !== 1 ? "s" : ""} created
                 </Text>
               </Stack>
               <Box w="1px" h={8} bg="green.200" />
@@ -753,6 +720,21 @@ export default function Import() {
                 </Text>
                 <Text fontSize="sm" color="green.600">
                   study item{result.itemsCreated !== 1 ? "s" : ""} created
+                </Text>
+              </Stack>
+              <Box w="1px" h={8} bg="green.200" />
+              <Stack gap={0} align="center">
+                <Text
+                  fontSize="2xl"
+                  fontWeight="bold"
+                  color="green.700"
+                  lineHeight="1"
+                >
+                  {result.courseSessionsUpdated}
+                </Text>
+                <Text fontSize="sm" color="green.600">
+                  class session{result.courseSessionsUpdated !== 1 ? "s" : ""}{" "}
+                  annotated
                 </Text>
               </Stack>
             </HStack>

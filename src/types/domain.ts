@@ -1,4 +1,9 @@
-export type ProgramType = "year" | "term" | "block" | "custom";
+export type ProgramType = "year" | "term" | "block" | "custom" | "course";
+export type CourseSessionStatus =
+  | "scheduled"
+  | "completed"
+  | "missed"
+  | "made_up";
 export type ProgramStatus = "planned" | "active" | "completed" | "archived";
 
 export type ItemType =
@@ -65,14 +70,30 @@ export interface Program {
   start_date: string;
   end_date: string;
   block_weeks?: number;
+  area?: string;
+  meeting_days?: string[];
+  makeup_days?: string[];
   parent: string;
   owner: string;
   created: string;
   updated: string;
   expand?: {
     parent?: Program;
-    "regula_programs(parent)"?: Program[];
+    area?: Area;
+    regula_programs_via_parent?: Program[];
   };
+}
+
+export interface CourseSession {
+  id: string;
+  course: string;
+  date: string;
+  notes: string;
+  status: CourseSessionStatus;
+  owner: string;
+  created: string;
+  updated: string;
+  expand?: { course?: Program };
 }
 
 export interface UserSettings {

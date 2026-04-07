@@ -23,12 +23,12 @@ import { NavLink, Outlet, useNavigate } from "react-router";
 
 const navItems = [
   { label: "Dashboard", to: "/" },
-  { label: "Programs", to: "/programs" },
-  { label: "Areas", to: "/areas" },
-  { label: "Resources", to: "/resources" },
+  { label: "Calendar", to: "/calendar" },
+  { label: "Homework & Revision", to: "/homework" },
   { label: "Syllabus", to: "/syllabus" },
-  { label: "Study Items", to: "/study-items" },
-  { label: "Sessions", to: "/sessions" },
+  { label: "Courses", to: "/courses" },
+  { label: "Resources", to: "/resources" },
+  { label: "Programs", to: "/programs" },
   { label: "Settings", to: "/settings" },
 ];
 
