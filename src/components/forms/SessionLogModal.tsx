@@ -1,5 +1,5 @@
-import { StudyItemPicker } from "@/components/forms/StudyItemPicker";
-import type { SessionOutcome, SessionType, StudyItem } from "@/types/domain";
+import { LessonPicker } from "@/components/forms/LessonPicker";
+import type { Lesson, SessionOutcome, SessionType } from "@/types/domain";
 import {
   Button,
   Dialog,
@@ -15,10 +15,10 @@ import { useState } from "react";
 interface Props {
   open: boolean;
   onClose: () => void;
-  items: StudyItem[];
-  defaultStudyItemIds?: string[];
+  items: Lesson[];
+  defaultLessonIds?: string[];
   onSubmit: (data: {
-    study_items: string[];
+    lessons: string[];
     session_type: SessionType;
     outcome: SessionOutcome;
     started_at: string;
@@ -33,13 +33,11 @@ export function SessionLogModal({
   open,
   onClose,
   items,
-  defaultStudyItemIds,
+  defaultLessonIds,
   onSubmit,
   loading,
 }: Props) {
-  const [studyItems, setStudyItems] = useState<string[]>(
-    defaultStudyItemIds ?? [],
-  );
+  const [lessonIds, setLessonIds] = useState<string[]>(defaultLessonIds ?? []);
   const [sessionType, setSessionType] = useState<SessionType>("deep_work");
   const [outcome, setOutcome] = useState<SessionOutcome>("completed");
   const [startedAt, setStartedAt] = useState("");
@@ -55,7 +53,7 @@ export function SessionLogModal({
       Math.round((end.getTime() - start.getTime()) / 60_000),
     );
     void onSubmit({
-      study_items: studyItems,
+      lessons: lessonIds,
       session_type: sessionType,
       outcome,
       started_at: start.toISOString(),
@@ -63,7 +61,7 @@ export function SessionLogModal({
       duration_minutes: durationMinutes,
       notes,
     }).then(() => {
-      setStudyItems(defaultStudyItemIds ?? []);
+      setLessonIds(defaultLessonIds ?? []);
       setNotes("");
       onClose();
     });
@@ -79,13 +77,13 @@ export function SessionLogModal({
           </Dialog.Header>
           <Dialog.Body as="form" id="log-session-form" onSubmit={handleSubmit}>
             <Stack gap={4}>
-              {!defaultStudyItemIds?.length && (
+              {!defaultLessonIds?.length && (
                 <Field.Root required>
-                  <Field.Label>Study Items</Field.Label>
-                  <StudyItemPicker
+                  <Field.Label>Lessons</Field.Label>
+                  <LessonPicker
                     items={items}
-                    value={studyItems}
-                    onChange={setStudyItems}
+                    value={lessonIds}
+                    onChange={setLessonIds}
                   />
                 </Field.Root>
               )}

@@ -1,16 +1,16 @@
 import { StatusBadge } from "@/components/cards/StatusBadge";
-import type { StudyItem } from "@/types/domain";
+import type { Lesson } from "@/types/domain";
 import { Box, Checkbox, HStack, Input, Stack, Text } from "@chakra-ui/react";
 import { useState } from "react";
 
 interface Props {
-  items: StudyItem[];
+  items: Lesson[];
   value: string[];
   onChange: (ids: string[]) => void;
   maxHeight?: string;
 }
 
-export function StudyItemPicker({
+export function LessonPicker({
   items,
   value,
   onChange,
@@ -32,7 +32,7 @@ export function StudyItemPicker({
     <Stack w="full" gap={2}>
       <Input
         size="sm"
-        placeholder="Search items…"
+        placeholder="Search lessons…"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
@@ -45,7 +45,7 @@ export function StudyItemPicker({
       >
         {filtered.length === 0 ? (
           <Text fontSize="sm" color="fg.muted" px={2} py={3} textAlign="center">
-            No items found
+            No lessons found
           </Text>
         ) : (
           <Stack gap={0}>
@@ -82,7 +82,7 @@ export function StudyItemPicker({
       </Box>
       {value.length > 0 && (
         <Text fontSize="xs" color="fg.muted">
-          {value.length} item{value.length !== 1 ? "s" : ""} selected
+          {value.length} lesson{value.length !== 1 ? "s" : ""} selected
         </Text>
       )}
     </Stack>

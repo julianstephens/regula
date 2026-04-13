@@ -25,58 +25,71 @@ const router = createBrowserRouter([
       {
         path: "programs",
         lazy: () =>
-          import("@/routes/programs").then((m) => ({ Component: m.default })),
+          import("@/routes/program-dashboard").then((m) => ({
+            Component: m.default,
+          })),
+      },
+      {
+        path: "programs/import",
+        lazy: () =>
+          import("@/routes/program-import").then((m) => ({
+            Component: m.default,
+          })),
       },
       {
         path: "programs/:id",
+        loader: ({ params }) => redirect(`/programs?program=${params.id}`),
+      },
+      {
+        path: "modules/:id",
+        loader: ({ params }) => redirect(`/programs?module=${params.id}`),
+      },
+      {
+        path: "lessons/:id",
         lazy: () =>
-          import("@/routes/program-detail").then((m) => ({
+          import("@/routes/lesson-detail").then((m) => ({
             Component: m.default,
           })),
       },
       {
-        path: "programs/:id/import",
+        path: "assessments",
         lazy: () =>
-          import("@/routes/import").then((m) => ({ Component: m.default })),
-      },
-      {
-        path: "courses",
-        lazy: () =>
-          import("@/routes/areas").then((m) => ({ Component: m.default })),
-      },
-      {
-        path: "resources",
-        lazy: () =>
-          import("@/routes/resources").then((m) => ({ Component: m.default })),
-      },
-      {
-        path: "homework",
-        lazy: () =>
-          import("@/routes/homework").then((m) => ({
+          import("@/routes/assessments").then((m) => ({
             Component: m.default,
           })),
       },
       {
-        path: "study-items/:id",
+        path: "assessments/:id",
         lazy: () =>
-          import("@/routes/study-item-detail").then((m) => ({
+          import("@/routes/assessment-detail").then((m) => ({
             Component: m.default,
           })),
       },
+      {
+        path: "reviews",
+        lazy: () =>
+          import("@/routes/reviews").then((m) => ({ Component: m.default })),
+      },
+
       {
         path: "calendar",
         lazy: () =>
           import("@/routes/calendar").then((m) => ({ Component: m.default })),
       },
       {
-        path: "syllabus",
+        path: "reports",
         lazy: () =>
-          import("@/routes/syllabus").then((m) => ({ Component: m.default })),
+          import("@/routes/reports").then((m) => ({ Component: m.default })),
       },
       {
         path: "settings",
         lazy: () =>
           import("@/routes/settings").then((m) => ({ Component: m.default })),
+      },
+      {
+        path: "docs",
+        lazy: () =>
+          import("@/routes/docs").then((m) => ({ Component: m.default })),
       },
     ],
   },

@@ -1,10 +1,11 @@
 import pb from "@/lib/pocketbase";
 import type { SessionOutcome, SessionType, StudySession } from "@/types/domain";
-import { completeItem } from "./studyItemService";
+import { completeLesson } from "./lessonService";
 
 export interface SessionFilters {
-  studyItem?: string;
+  lesson?: string;
   area?: string;
+  program?: string;
   dateFrom?: string;
   dateTo?: string;
 }
@@ -13,8 +14,9 @@ export async function listSessions(
   filters: SessionFilters = {},
 ): Promise<StudySession[]> {
   const parts: string[] = ['ended_at != ""'];
-  if (filters.studyItem) parts.push(`study_items ~ "${filters.studyItem}"`);
+  if (filters.lesson) parts.push(`lessons ~ "${filters.lesson}"`);
   if (filters.area) parts.push(`area = "${filters.area}"`);
+  if (filters.program) parts.push(`lessons.program ?= "${filters.program}"`);
   if (filters.dateFrom) parts.push(`ended_at >= "${filters.dateFrom}"`);
   if (filters.dateTo) parts.push(`ended_at <= "${filters.dateTo}"`);
   const filter = parts.join(" && ");
@@ -22,7 +24,7 @@ export async function listSessions(
   return pb.collection("regula_study_sessions").getFullList({
     sort: "-started_at",
     filter,
-    expand: "study_items,area",
+    expand: "lessons,area",
   }) as Promise<StudySession[]>;
 }
 
@@ -30,33 +32,26 @@ export async function getOpenSession(): Promise<StudySession | null> {
   const results = (await pb.collection("regula_study_sessions").getFullList({
     filter: 'started_at != "" && ended_at = ""',
     sort: "-started_at",
-    expand: "study_items",
+    expand: "lessons",
   })) as StudySession[];
   return results[0] ?? null;
 }
 
-export async function startSession(
-  studyItemIds: string[],
-): Promise<StudySession> {
+export async function startSession(lessonIds: string[]): Promise<StudySession> {
   const { createEvent } = await import("./itemEventService");
-  let areaId = "";
 
-  for (const id of studyItemIds) {
-    const item = (await pb
-      .collection("regula_study_items")
-      .getOne(id)) as import("@/types/domain").StudyItem;
-    if (!areaId) areaId = item.area;
-    if (item.status === "available" || item.status === "planned") {
-      await pb
-        .collection("regula_study_items")
-        .update(id, { status: "in_progress" });
+  for (const id of lessonIds) {
+    const lesson = (await pb
+      .collection("regula_lessons")
+      .getOne(id)) as import("@/types/domain").Lesson;
+    if (lesson.status === "not_started") {
+      await pb.collection("regula_lessons").update(id, { status: "active" });
       await createEvent(id, "started");
     }
   }
 
   return pb.collection("regula_study_sessions").create({
-    study_items: studyItemIds,
-    area: areaId,
+    lessons: lessonIds,
     started_at: new Date().toISOString(),
     owner: pb.authStore.record!.id,
   }) as Promise<StudySession>;
@@ -88,12 +83,12 @@ export async function endSession(
     }) as Promise<StudySession>);
 
   if (outcome === "completed") {
-    const itemIds = ([] as string[]).concat(session.study_items ?? []);
-    for (const itemId of itemIds) {
+    const lessonIds = ([] as string[]).concat(session.lessons ?? []);
+    for (const lessonId of lessonIds) {
       try {
-        await completeItem(itemId);
+        await completeLesson(lessonId);
       } catch (e) {
-        console.warn(`Failed to complete item ${itemId}:`, e);
+        console.warn(`Failed to complete lesson ${lessonId}:`, e);
       }
     }
   }
@@ -109,12 +104,16 @@ export async function logSession(
     owner: pb.authStore.record!.id,
   }) as Promise<StudySession>);
 
-  if (data.outcome === "completed" && data.study_items?.length) {
-    const itemIds = ([] as string[]).concat(data.study_items);
-    for (const itemId of itemIds) {
-      await completeItem(itemId);
+  if (data.outcome === "completed" && data.lessons?.length) {
+    const lessonIds = ([] as string[]).concat(data.lessons);
+    for (const lessonId of lessonIds) {
+      await completeLesson(lessonId);
     }
   }
 
   return session;
+}
+
+export async function deleteSession(id: string): Promise<void> {
+  await pb.collection("regula_study_sessions").delete(id);
 }

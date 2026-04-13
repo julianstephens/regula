@@ -27,7 +27,7 @@ export function isOverdue(
   status: string,
 ): boolean {
   if (!dueDateStr) return false;
-  if (["completed", "cancelled"].includes(status)) return false;
+  if (["completed", "archived", "cancelled"].includes(status)) return false;
   return new Date(dueDateStr) < startOfDay();
 }
 
@@ -37,7 +37,11 @@ export function toISODateString(date: Date): string {
 
 export function formatDate(dateStr: string | undefined): string {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString(undefined, {
+  // Extract the YYYY-MM-DD portion from any format (bare date or PocketBase
+  // datetime like "2026-04-12 00:00:00.000Z") and parse as local noon to avoid
+  // UTC-midnight → previous-day rollback in UTC+ timezones.
+  const datePart = dateStr.slice(0, 10);
+  return new Date(`${datePart}T12:00:00`).toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
     day: "numeric",

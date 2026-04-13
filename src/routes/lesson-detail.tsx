@@ -1,22 +1,22 @@
 import { StatusBadge } from "@/components/cards/StatusBadge";
+import type { LessonFormValues } from "@/components/forms/LessonForm";
+import { LessonForm } from "@/components/forms/LessonForm";
 import { SessionLogModal } from "@/components/forms/SessionLogModal";
-import { StudyItemForm } from "@/components/forms/StudyItemForm";
 import { AppLink } from "@/components/ui/app-link";
-import { DEFAULT_BLOCK_WEEKS } from "@/lib/blocks";
 import { formatDate } from "@/lib/dates";
 import { formatMinutes } from "@/lib/format";
-import pb from "@/lib/pocketbase";
-import { listAreas } from "@/lib/services/areaService";
-import { listPrograms } from "@/lib/services/programService";
-import { listResources } from "@/lib/services/resourceService";
-import { getSettings } from "@/lib/services/settingsService";
+import { listEvents } from "@/lib/services/itemEventService";
 import {
   changeStatus,
-  getStudyItem,
-  updateStudyItem,
-} from "@/lib/services/studyItemService";
+  getLesson,
+  updateLesson,
+} from "@/lib/services/lessonService";
+import { listModules } from "@/lib/services/moduleService";
+import { listPrograms } from "@/lib/services/programService";
+import { listResources } from "@/lib/services/resourceService";
+import { createReview, listReviews } from "@/lib/services/reviewService";
 import { listSessions, logSession } from "@/lib/services/studySessionService";
-import type { ItemEvent, ItemStatus } from "@/types/domain";
+import type { ItemEvent, Lesson, LessonStatus } from "@/types/domain";
 import {
   Badge,
   Box,
@@ -35,7 +35,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useParams } from "react-router";
 
-export default function StudyItemDetail() {
+export default function LessonDetail() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
@@ -43,72 +43,91 @@ export default function StudyItemDetail() {
   const [logSessionOpen, setLogSessionOpen] = useState(false);
   const [logSessionLoading, setLogSessionLoading] = useState(false);
 
-  const { data: item, isLoading } = useQuery({
-    queryKey: ["study_items", id],
-    queryFn: () => getStudyItem(id!),
+  const { data: lesson, isLoading } = useQuery({
+    queryKey: ["lessons", id],
+    queryFn: () => getLesson(id!),
     enabled: !!id,
   });
+
   const { data: sessions = [] } = useQuery({
-    queryKey: ["study_sessions", { studyItem: id }],
-    queryFn: () => listSessions({ studyItem: id }),
+    queryKey: ["study_sessions", { lesson: id }],
+    queryFn: () => listSessions({ lesson: id }),
     enabled: !!id,
   });
+
   const { data: events = [] } = useQuery<ItemEvent[]>({
     queryKey: ["item_events", id],
-    queryFn: () =>
-      pb.collection("regula_item_events").getFullList({
-        filter: `study_item = "${id}"`,
-        sort: "-created",
-      }) as Promise<ItemEvent[]>,
+    queryFn: () => listEvents(id!),
     enabled: !!id,
   });
-  const { data: areas = [] } = useQuery({
-    queryKey: ["areas"],
-    queryFn: listAreas,
+
+  const { data: reviews = [] } = useQuery({
+    queryKey: ["reviews", { lesson: id }],
+    queryFn: () => listReviews({ lesson: id }),
+    enabled: !!id,
   });
+
   const { data: programs = [] } = useQuery({
     queryKey: ["programs"],
     queryFn: listPrograms,
   });
+
+  const { data: modules = [] } = useQuery({
+    queryKey: ["modules", { program: lesson?.program }],
+    queryFn: () =>
+      lesson?.program ? listModules({ program: lesson.program }) : [],
+    enabled: !!lesson?.program,
+  });
+
   const { data: resources = [] } = useQuery({
     queryKey: ["resources"],
     queryFn: () => listResources(),
   });
-  const { data: settings } = useQuery({
-    queryKey: ["user_settings"],
-    queryFn: getSettings,
-  });
-  const blockWeeksDefault = settings?.block_weeks ?? DEFAULT_BLOCK_WEEKS;
 
   const updateMut = useMutation({
-    mutationFn: (data: Parameters<typeof updateStudyItem>[1]) =>
-      updateStudyItem(id!, data),
+    mutationFn: (data: Partial<Parameters<typeof updateLesson>[1]>) =>
+      updateLesson(id!, data),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["study_items"] });
+      void qc.invalidateQueries({ queryKey: ["lessons"] });
       setEditing(false);
     },
   });
+
   const statusMut = useMutation({
-    mutationFn: (status: ItemStatus) => changeStatus(id!, status),
+    mutationFn: (status: LessonStatus) => changeStatus(id!, status),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["study_items"] });
+      void qc.invalidateQueries({ queryKey: ["lessons"] });
       void qc.invalidateQueries({ queryKey: ["item_events"] });
     },
   });
 
+  const reviewMut = useMutation({
+    mutationFn: () =>
+      createReview({
+        lesson: id!,
+        due_at: new Date().toISOString(),
+        status: "active",
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["reviews", { lesson: id }] });
+    },
+  });
+
   if (isLoading) return <Text>Loading…</Text>;
-  if (!item) return <Text>Item not found.</Text>;
+  if (!lesson) return <Text>Lesson not found.</Text>;
 
   const totalMinutes = sessions.reduce(
     (s, sess) => s + (sess.duration_minutes ?? 0),
     0,
   );
 
+  const activeReview = reviews.find((r) => r.status === "active");
+
   return (
-    <Stack id="study-item-detail" gap={6}>
+    <Stack id="lesson-detail" gap={6}>
       {/* Header */}
       <Flex
-        id="study-item-header"
+        id="lesson-header"
         justify="space-between"
         align="start"
         flexWrap="wrap"
@@ -116,48 +135,65 @@ export default function StudyItemDetail() {
       >
         <Stack gap={1}>
           <AppLink
-            to="/homework"
+            to={
+              lesson.expand?.module ? `/modules/${lesson.module}` : "/modules"
+            }
             mb="6"
             alignSelf="flex-start"
             color="fg.muted"
             fontSize="sm"
           >
-            ← Homework &amp; Revision
+            ← {lesson.expand?.module ? lesson.expand.module.title : "Modules"}
           </AppLink>
           <HStack flexWrap="wrap" gap={2}>
-            <Heading size="lg">{item.title}</Heading>
-            <StatusBadge status={item.status} />
+            <Heading size="lg">{lesson.title}</Heading>
+            <StatusBadge status={lesson.status} />
+            {lesson.type && <Badge variant="outline">{lesson.type}</Badge>}
           </HStack>
         </Stack>
 
         <HStack flexWrap="wrap" gap={2}>
-          {item.status === "available" && (
+          {lesson.status === "not_started" && (
             <Button
               size="sm"
-              colorPalette="orange"
+              colorPalette="green"
+              variant="outline"
               loading={statusMut.isPending}
-              onClick={() => statusMut.mutate("in_progress")}
+              onClick={() => statusMut.mutate("active")}
             >
               Start
             </Button>
           )}
-          {item.status === "in_progress" && (
+          {lesson.status === "active" && (
+            <Button
+              size="sm"
+              colorPalette="blue"
+              variant="outline"
+              loading={statusMut.isPending}
+              onClick={() => statusMut.mutate("submitted")}
+            >
+              Submit
+            </Button>
+          )}
+          {lesson.status === "submitted" && (
             <Button
               size="sm"
               colorPalette="green"
+              variant="outline"
               loading={statusMut.isPending}
               onClick={() => statusMut.mutate("completed")}
             >
-              Complete
+              Mark Reviewed
             </Button>
           )}
-          {!["completed", "cancelled", "deferred"].includes(item.status) && (
+          {!activeReview && lesson.status === "completed" && (
             <Button
               size="sm"
-              variant="ghost"
-              onClick={() => statusMut.mutate("deferred")}
+              variant="outline"
+              loading={reviewMut.isPending}
+              onClick={() => reviewMut.mutate()}
             >
-              Defer
+              Add to Review Queue
             </Button>
           )}
           <Button
@@ -175,7 +211,7 @@ export default function StudyItemDetail() {
 
       {/* Edit dialog */}
       <Dialog.Root
-        id="edit-study-item"
+        id="edit-lesson"
         open={editing}
         onOpenChange={({ open: o }) => !o && setEditing(false)}
         size="lg"
@@ -184,32 +220,33 @@ export default function StudyItemDetail() {
         <Dialog.Positioner>
           <Dialog.Content>
             <Dialog.Header>
-              <Dialog.Title>Edit Study Item</Dialog.Title>
+              <Dialog.Title>Edit Lesson</Dialog.Title>
             </Dialog.Header>
             <Dialog.Body>
-              <StudyItemForm
-                areas={areas}
+              <LessonForm
                 programs={programs}
+                modules={modules}
                 resources={resources}
                 loading={formLoading}
                 submitLabel="Save Changes"
                 defaultValues={{
-                  title: item.title,
-                  item_type: item.item_type,
-                  status: item.status,
-                  area: item.area,
-                  program: item.program,
-                  resource: item.resource,
-                  due_date: item.due_date?.slice(0, 10) ?? "",
-                  scheduled_date: item.scheduled_date?.slice(0, 10) ?? "",
-                  estimated_minutes: item.estimated_minutes ?? undefined,
-                  notes: item.notes,
+                  title: lesson.title,
+                  type: lesson.type,
+                  status: lesson.status,
+                  program: lesson.program,
+                  module: lesson.module,
+                  resource: lesson.resource,
+                  available_on: lesson.available_on?.slice(0, 10) ?? "",
+                  due_at: lesson.due_at?.slice(0, 10) ?? "",
+                  estimated_minutes: lesson.estimated_minutes ?? undefined,
+                  grade_type: lesson.grade_type,
+                  mastery_evidence: lesson.mastery_evidence,
+                  notes: lesson.notes,
                 }}
-                blockWeeksDefault={blockWeeksDefault}
-                onSubmit={async (data) => {
+                onSubmit={async (data: LessonFormValues) => {
                   setFormLoading(true);
                   try {
-                    await updateMut.mutateAsync(data);
+                    await updateMut.mutateAsync(data as Partial<Lesson>);
                   } finally {
                     setFormLoading(false);
                   }
@@ -229,15 +266,15 @@ export default function StudyItemDetail() {
       <SessionLogModal
         open={logSessionOpen}
         onClose={() => setLogSessionOpen(false)}
-        items={[item]}
-        defaultStudyItemIds={[item.id]}
+        items={[lesson]}
+        defaultLessonIds={[lesson.id]}
         loading={logSessionLoading}
         onSubmit={async (data) => {
           setLogSessionLoading(true);
           try {
             await logSession(data);
             void qc.invalidateQueries({
-              queryKey: ["study_sessions", { studyItem: id }],
+              queryKey: ["study_sessions", { lesson: id }],
             });
           } finally {
             setLogSessionLoading(false);
@@ -268,7 +305,7 @@ export default function StudyItemDetail() {
         </Tabs.List>
 
         {/* Details tab */}
-        <Tabs.Content id="study-item-details" value="details">
+        <Tabs.Content id="lesson-details" value="details">
           <Stack gap={4} pt={4}>
             <Grid
               templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }}
@@ -280,54 +317,70 @@ export default function StudyItemDetail() {
             >
               <Box>
                 <Text fontSize="xs" color="fg.subtle" mb={1}>
-                  Area
+                  Program
                 </Text>
-                <Text fontWeight="medium">
-                  {item.expand?.area?.name ?? "—"}
-                </Text>
+                {lesson.expand?.program ? (
+                  <AppLink
+                    to={`/programs/${lesson.program}`}
+                    fontWeight="medium"
+                    color="colorPalette.fg"
+                  >
+                    {lesson.expand.program.name}
+                  </AppLink>
+                ) : (
+                  <Text fontWeight="medium">—</Text>
+                )}
               </Box>
               <Box>
                 <Text fontSize="xs" color="fg.subtle" mb={1}>
-                  Program
+                  Module
                 </Text>
-                <Text fontWeight="medium">
-                  {item.expand?.program?.name ?? "—"}
-                </Text>
+                {lesson.expand?.module ? (
+                  <AppLink
+                    to={`/modules/${lesson.module}`}
+                    fontWeight="medium"
+                    color="colorPalette.fg"
+                  >
+                    {lesson.expand.module.title}
+                  </AppLink>
+                ) : (
+                  <Text fontWeight="medium">—</Text>
+                )}
               </Box>
               <Box>
                 <Text fontSize="xs" color="fg.subtle" mb={1}>
                   Resource
                 </Text>
                 <Text fontWeight="medium">
-                  {item.expand?.resource?.title ?? "—"}
+                  {lesson.expand?.resource?.title ?? "—"}
                 </Text>
               </Box>
               <Box>
                 <Text fontSize="xs" color="fg.subtle" mb={1}>
                   Type
                 </Text>
-                <Text fontWeight="medium">{item.item_type || "—"}</Text>
+                <Text fontWeight="medium">{lesson.type || "—"}</Text>
+              </Box>
+              <Box>
+                <Text fontSize="xs" color="fg.subtle" mb={1}>
+                  Available On
+                </Text>
+                <Text fontWeight="medium">
+                  {formatDate(lesson.available_on)}
+                </Text>
               </Box>
               <Box>
                 <Text fontSize="xs" color="fg.subtle" mb={1}>
                   Due
                 </Text>
-                <Text fontWeight="medium">{formatDate(item.due_date)}</Text>
-              </Box>
-              <Box>
-                <Text fontSize="xs" color="fg.subtle" mb={1}>
-                  Scheduled
-                </Text>
-                <Text fontWeight="medium">
-                  {formatDate(item.scheduled_date)}
-                </Text>
+                <Text fontWeight="medium">{formatDate(lesson.due_at)}</Text>
               </Box>
               <Box>
                 <Text fontSize="xs" color="fg.subtle" mb={1}>
                   Completed
                 </Text>
                 <Text fontWeight="medium">
-                  {formatDate(item.completion_date)}
+                  {formatDate(lesson.completed_at)}
                 </Text>
               </Box>
               <Box>
@@ -335,8 +388,8 @@ export default function StudyItemDetail() {
                   Est. Time
                 </Text>
                 <Text fontWeight="medium">
-                  {item.estimated_minutes
-                    ? formatMinutes(item.estimated_minutes)
+                  {lesson.estimated_minutes
+                    ? formatMinutes(lesson.estimated_minutes)
                     : "—"}
                 </Text>
               </Box>
@@ -348,21 +401,60 @@ export default function StudyItemDetail() {
                   {totalMinutes > 0 ? formatMinutes(totalMinutes) : "—"}
                 </Text>
               </Box>
+              <Box>
+                <Text fontSize="xs" color="fg.subtle" mb={1}>
+                  Grade Type
+                </Text>
+                <Text fontWeight="medium">{lesson.grade_type || "—"}</Text>
+              </Box>
             </Grid>
 
-            {item.notes && (
+            {lesson.expand?.prerequisites &&
+              lesson.expand.prerequisites.length > 0 && (
+                <Box p={4} borderWidth={1} borderRadius="md" bg="bg.subtle">
+                  <Text fontSize="xs" color="fg.subtle" mb={2}>
+                    Prerequisites
+                  </Text>
+                  <Stack gap={1}>
+                    {lesson.expand.prerequisites.map((p) => (
+                      <HStack key={p.id} gap={2}>
+                        <AppLink
+                          to={`/lessons/${p.id}`}
+                          color="colorPalette.fg"
+                          fontWeight="medium"
+                          fontSize="sm"
+                        >
+                          {p.title}
+                        </AppLink>
+                        <StatusBadge status={p.status} />
+                      </HStack>
+                    ))}
+                  </Stack>
+                </Box>
+              )}
+
+            {lesson.mastery_evidence && (
+              <Box p={4} borderWidth={1} borderRadius="md" bg="bg.subtle">
+                <Text fontSize="xs" color="fg.subtle" mb={2}>
+                  Mastery Evidence
+                </Text>
+                <Text whiteSpace="pre-wrap">{lesson.mastery_evidence}</Text>
+              </Box>
+            )}
+
+            {lesson.notes && (
               <Box p={4} borderWidth={1} borderRadius="md" bg="bg.subtle">
                 <Text fontSize="xs" color="fg.subtle" mb={2}>
                   Notes
                 </Text>
-                <Text whiteSpace="pre-wrap">{item.notes}</Text>
+                <Text whiteSpace="pre-wrap">{lesson.notes}</Text>
               </Box>
             )}
           </Stack>
         </Tabs.Content>
 
         {/* Sessions tab */}
-        <Tabs.Content id="study-item-sessions" value="sessions">
+        <Tabs.Content id="lesson-sessions" value="sessions">
           <Stack gap={3} pt={4}>
             {sessions.length === 0 ? (
               <Box

@@ -1,22 +1,20 @@
-import type { ItemStatus } from "@/types/domain";
 import { Badge } from "@chakra-ui/react";
 
-const statusConfig: Record<
-  ItemStatus,
-  { label: string; colorPalette: string }
-> = {
-  planned: { label: "Planned", colorPalette: "teal" },
-  available: { label: "Available", colorPalette: "blue" },
-  in_progress: { label: "In Progress", colorPalette: "orange" },
+const statusConfig: Record<string, { label: string; colorPalette: string }> = {
+  not_started: { label: "Not Started", colorPalette: "gray" },
+  active: { label: "Active", colorPalette: "orange" },
+  submitted: { label: "Submitted", colorPalette: "blue" },
   completed: { label: "Completed", colorPalette: "green" },
-  deferred: { label: "Deferred", colorPalette: "purple" },
-  cancelled: { label: "Cancelled", colorPalette: "red" },
+  archived: { label: "Archived", colorPalette: "gray" },
+  in_progress: { label: "In Progress", colorPalette: "orange" },
+  graded: { label: "Graded", colorPalette: "purple" },
+  suspended: { label: "Suspended", colorPalette: "yellow" },
 };
 
-export function StatusBadge({ status }: { status: ItemStatus }) {
+export function StatusBadge({ status }: { status: string }) {
   const config = statusConfig[status] ?? {
-    label: status,
-    colorPalette: "teal",
+    label: status.replace(/_/g, " "),
+    colorPalette: "gray",
   };
   return (
     <Badge colorPalette={config.colorPalette} variant="subtle">

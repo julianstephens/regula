@@ -10,11 +10,10 @@ export interface AreasRecord extends RecordModel {
 export interface ProgramsRecord extends RecordModel {
   name: string;
   description: string;
-  type: "year" | "term" | "block" | "custom" | "course";
+  type: "year" | "term" | "custom" | "course";
   status: "planned" | "active" | "completed" | "archived";
   start_date: string;
   end_date: string;
-  block_weeks?: number;
   area?: string;
   meeting_days?: string[];
   makeup_days?: string[];
@@ -32,38 +31,96 @@ export interface ResourcesRecord extends RecordModel {
   owner: string;
 }
 
-export interface StudyItemsRecord extends RecordModel {
+export interface ModulesRecord extends RecordModel {
+  program: string;
   title: string;
-  item_type:
+  slug: string;
+  order: number;
+  goal: string;
+  start_date: string;
+  end_date: string;
+  owner: string;
+}
+
+export interface LessonsRecord extends RecordModel {
+  title: string;
+  type:
+    | "lesson"
     | "reading"
     | "writing"
-    | "memorization"
     | "exercise"
+    | "memorization"
     | "review"
-    | "quiz"
-    | "exam"
-    | "paper"
     | "other";
   status:
-    | "planned"
-    | "available"
-    | "in_progress"
+    | "not_started"
+    | "active"
+    | "blocked"
+    | "submitted"
     | "completed"
-    | "deferred"
-    | "cancelled";
-  area: string;
+    | "archived";
   program: string;
+  module: string;
   resource: string;
-  due_date: string;
-  scheduled_date: string;
-  completion_date: string;
+  prerequisites: string[];
+  available_on: string;
+  due_at: string;
+  completed_at: string;
   estimated_minutes: number;
+  grade_type: "none" | "pass_fail" | "numeric" | "rubric";
+  mastery_evidence: string;
   notes: string;
   owner: string;
 }
 
+export interface AssessmentsRecord extends RecordModel {
+  title: string;
+  assessment_type:
+    | "exam"
+    | "paper"
+    | "essay"
+    | "oral"
+    | "translation"
+    | "recitation"
+    | "reflection"
+    | "project"
+    | "practicum";
+  submission_mode: "written" | "oral" | "digital" | "none";
+  status: "not_started" | "in_progress" | "submitted" | "graded" | "archived";
+  lesson: string;
+  module: string;
+  program: string;
+  prompt: string;
+  metadata_json: string;
+  score: number;
+  max_score: number;
+  weight: number;
+  passed: boolean;
+  feedback: string;
+  due_at: string;
+  submitted_at: string;
+  completed_at: string;
+  grade_type: "none" | "pass_fail" | "numeric" | "rubric";
+  attachment?: string;
+  attachment_url?: string;
+  attachment_size_bytes?: number;
+  owner: string;
+}
+
+export interface ReviewsRecord extends RecordModel {
+  lesson: string;
+  due_at: string;
+  next_review_at: string;
+  interval_days: number;
+  ease_factor: number;
+  last_reviewed_at: string;
+  status: "active" | "suspended" | "completed";
+  failure_count: number;
+  owner: string;
+}
+
 export interface StudySessionsRecord extends RecordModel {
-  study_items: string[];
+  lessons: string[];
   session_type:
     | "deep_work"
     | "light_review"
@@ -81,7 +138,7 @@ export interface StudySessionsRecord extends RecordModel {
 }
 
 export interface ItemEventsRecord extends RecordModel {
-  study_item: string;
+  lesson: string;
   event_type:
     | "created"
     | "scheduled"
@@ -96,16 +153,22 @@ export interface ItemEventsRecord extends RecordModel {
 }
 
 export interface UserSettingsRecord extends RecordModel {
-  block_weeks: number;
   ahead_weeks?: number;
+  work_week?: string[];
+  active_programs: string[];
+  storage_quota_bytes?: number;
+  storage_used_bytes?: number;
   owner: string;
 }
 
-export interface CourseSessionsRecord extends RecordModel {
-  course: string;
-  date: string;
-  notes: string;
-  status: "scheduled" | "completed" | "missed" | "made_up";
+export interface VacationsRecord extends RecordModel {
+  name: string;
+  start_date: string;
+  end_date: string;
+  strategy: "stack" | "recovery" | "push_back";
+  recovery_before_days: number;
+  recovery_after_days: number;
+  work_week_override_days?: string[];
   owner: string;
 }
 
@@ -113,9 +176,12 @@ export type CollectionRecords = {
   areas: AreasRecord;
   programs: ProgramsRecord;
   resources: ResourcesRecord;
-  study_items: StudyItemsRecord;
+  modules: ModulesRecord;
+  lessons: LessonsRecord;
+  assessments: AssessmentsRecord;
+  reviews: ReviewsRecord;
   study_sessions: StudySessionsRecord;
   item_events: ItemEventsRecord;
   user_settings: UserSettingsRecord;
-  course_sessions: CourseSessionsRecord;
+  vacations: VacationsRecord;
 };

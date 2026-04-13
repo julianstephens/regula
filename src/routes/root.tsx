@@ -1,3 +1,4 @@
+import { AppLink } from "@/components/ui/app-link";
 import pb from "@/lib/pocketbase";
 import {
   Box,
@@ -13,7 +14,6 @@ import {
   Heading,
   HStack,
   IconButton,
-  Link,
   Text,
   VStack,
 } from "@chakra-ui/react";
@@ -23,12 +23,12 @@ import { NavLink, Outlet, useNavigate } from "react-router";
 
 const navItems = [
   { label: "Dashboard", to: "/" },
-  { label: "Calendar", to: "/calendar" },
-  { label: "Homework & Revision", to: "/homework" },
-  { label: "Syllabus", to: "/syllabus" },
-  { label: "Courses", to: "/courses" },
-  { label: "Resources", to: "/resources" },
   { label: "Programs", to: "/programs" },
+  { label: "Assessments", to: "/assessments" },
+  { label: "Reviews", to: "/reviews" },
+  { label: "Calendar", to: "/calendar" },
+  { label: "Reports", to: "/reports" },
+  { label: "Docs", to: "/docs" },
   { label: "Settings", to: "/settings" },
 ];
 
@@ -85,7 +85,7 @@ export default function Root() {
         flexShrink={0}
       >
         <Heading size="md" color="fg">
-          <Link href="/">Regula</Link>
+          <AppLink to="/">Regula</AppLink>
         </Heading>
         <IconButton
           aria-label="Open menu"
@@ -113,19 +113,19 @@ export default function Root() {
           flexShrink={0}
         >
           <Heading size="md" mb={8} color="fg">
-            <Link href="/">Regula</Link>
+            <AppLink to="/">Regula</AppLink>
           </Heading>
           <VStack align="stretch" gap={1} flex={1}>
             <NavItems />
           </VStack>
-          <HStack mt={4} justify="space-between">
+          <VStack mt={4} justify="space-between">
             <Text fontSize="sm" color="fg.muted" truncate>
               {pb.authStore.record?.email as string | undefined}
             </Text>
-            <Button size="xs" variant="ghost" onClick={handleLogout}>
+            <Button size="xs" variant="outline" onClick={handleLogout}>
               Log out
             </Button>
-          </HStack>
+          </VStack>
         </Box>
 
         {/* Main content */}
@@ -144,7 +144,7 @@ export default function Root() {
         <DrawerContent h="full">
           <DrawerHeader>
             <DrawerTitle>
-              <Link href="/">Regula</Link>
+              <AppLink to="/">Regula</AppLink>
             </DrawerTitle>
             <DrawerCloseTrigger />
           </DrawerHeader>

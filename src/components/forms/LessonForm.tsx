@@ -1,5 +1,11 @@
-import { DEFAULT_BLOCK_WEEKS, isInRestWeek } from "@/lib/blocks";
-import type { Area, Program, Resource, StudyItem } from "@/types/domain";
+import type {
+  GradeType,
+  LessonStatus,
+  LessonType,
+  Module,
+  Program,
+  Resource,
+} from "@/types/domain";
 import {
   Button,
   Field,
@@ -11,54 +17,62 @@ import {
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
-interface StudyItemFormValues {
+export interface LessonFormValues {
   title: string;
-  item_type: StudyItem["item_type"];
-  status: StudyItem["status"];
-  area: string;
+  type: LessonType | "";
+  status: LessonStatus;
   program: string;
+  module: string;
   resource: string;
-  due_date: string;
-  scheduled_date: string;
+  available_on: string;
+  due_at: string;
   estimated_minutes: number | undefined;
+  grade_type: GradeType | "";
+  mastery_evidence: string;
   notes: string;
 }
 
 interface Props {
-  defaultValues?: Partial<StudyItemFormValues>;
-  areas: Area[];
+  defaultValues?: Partial<LessonFormValues>;
   programs: Program[];
+  modules: Module[];
   resources: Resource[];
-  onSubmit: (data: StudyItemFormValues) => Promise<void>;
+  onSubmit: (data: LessonFormValues) => Promise<void>;
   loading?: boolean;
   submitLabel?: string;
-  blockWeeksDefault?: number;
 }
 
-export function StudyItemForm({
+export function LessonForm({
   defaultValues,
-  areas,
   programs,
+  modules,
   resources,
   onSubmit,
   loading,
   submitLabel = "Save",
-  blockWeeksDefault = DEFAULT_BLOCK_WEEKS,
 }: Props) {
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<StudyItemFormValues>({
+  } = useForm<LessonFormValues>({
     defaultValues: {
-      status: "planned",
+      status: "not_started",
+      type: "",
+      grade_type: "",
       ...defaultValues,
     },
   });
 
   useEffect(() => {
-    if (defaultValues) reset({ status: "planned", ...defaultValues });
+    if (defaultValues)
+      reset({
+        status: "not_started",
+        type: "",
+        grade_type: "",
+        ...defaultValues,
+      });
   }, [defaultValues, reset]);
 
   return (
@@ -76,18 +90,16 @@ export function StudyItemForm({
           <Field.Root>
             <Field.Label>Type</Field.Label>
             <NativeSelect.Root>
-              <NativeSelect.Field {...register("item_type")}>
+              <NativeSelect.Field {...register("type")}>
                 <option value="">—</option>
                 {(
                   [
+                    "lesson",
                     "reading",
                     "writing",
-                    "memorization",
                     "exercise",
+                    "memorization",
                     "review",
-                    "quiz",
-                    "exam",
-                    "paper",
                     "other",
                   ] as const
                 ).map((v) => (
@@ -106,12 +118,11 @@ export function StudyItemForm({
               <NativeSelect.Field {...register("status")}>
                 {(
                   [
-                    "planned",
-                    "available",
-                    "in_progress",
+                    "not_started",
+                    "active",
+                    "submitted",
                     "completed",
-                    "deferred",
-                    "cancelled",
+                    "archived",
                   ] as const
                 ).map((v) => (
                   <option key={v} value={v}>
@@ -126,13 +137,13 @@ export function StudyItemForm({
 
         <Stack direction="row" gap={4}>
           <Field.Root>
-            <Field.Label>Area</Field.Label>
+            <Field.Label>Program</Field.Label>
             <NativeSelect.Root>
-              <NativeSelect.Field {...register("area")}>
+              <NativeSelect.Field {...register("program")}>
                 <option value="">—</option>
-                {areas.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
+                {programs.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
                   </option>
                 ))}
               </NativeSelect.Field>
@@ -141,13 +152,13 @@ export function StudyItemForm({
           </Field.Root>
 
           <Field.Root>
-            <Field.Label>Program</Field.Label>
+            <Field.Label>Module</Field.Label>
             <NativeSelect.Root>
-              <NativeSelect.Field {...register("program")}>
+              <NativeSelect.Field {...register("module")}>
                 <option value="">—</option>
-                {programs.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
+                {modules.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.title}
                   </option>
                 ))}
               </NativeSelect.Field>
@@ -172,33 +183,16 @@ export function StudyItemForm({
         </Stack>
 
         <Stack direction="row" gap={4}>
-          <Field.Root>
-            <Field.Label>Due Date</Field.Label>
-            <Input type="date" {...register("due_date")} />
-          </Field.Root>
-          <Field.Root invalid={!!errors.scheduled_date}>
-            <Field.Label>Scheduled Date</Field.Label>
-            <Input
-              type="date"
-              {...register("scheduled_date", {
-                validate: (value) => {
-                  if (!value) return true;
-                  const blockProgs = programs.filter(
-                    (p) => p.type === "block" && !!p.end_date,
-                  );
-                  return isInRestWeek(
-                    new Date(value),
-                    blockProgs,
-                    blockWeeksDefault,
-                  )
-                    ? "This date falls in a rest week"
-                    : true;
-                },
-              })}
-            />
-            {errors.scheduled_date && (
-              <Field.ErrorText>{errors.scheduled_date.message}</Field.ErrorText>
+          <Field.Root invalid={!!errors.available_on}>
+            <Field.Label>Available On</Field.Label>
+            <Input type="date" {...register("available_on")} />
+            {errors.available_on && (
+              <Field.ErrorText>{errors.available_on.message}</Field.ErrorText>
             )}
+          </Field.Root>
+          <Field.Root>
+            <Field.Label>Due At</Field.Label>
+            <Input type="date" {...register("due_at")} />
           </Field.Root>
           <Field.Root>
             <Field.Label>Est. Minutes</Field.Label>
@@ -211,6 +205,30 @@ export function StudyItemForm({
             />
           </Field.Root>
         </Stack>
+
+        <Stack direction="row" gap={4}>
+          <Field.Root>
+            <Field.Label>Grade Type</Field.Label>
+            <NativeSelect.Root>
+              <NativeSelect.Field {...register("grade_type")}>
+                <option value="">—</option>
+                {(["none", "pass_fail", "numeric", "rubric"] as const).map(
+                  (v) => (
+                    <option key={v} value={v}>
+                      {v.replace(/_/g, " ")}
+                    </option>
+                  ),
+                )}
+              </NativeSelect.Field>
+              <NativeSelect.Indicator />
+            </NativeSelect.Root>
+          </Field.Root>
+        </Stack>
+
+        <Field.Root>
+          <Field.Label>Mastery Evidence</Field.Label>
+          <Textarea {...register("mastery_evidence")} rows={2} />
+        </Field.Root>
 
         <Field.Root>
           <Field.Label>Notes</Field.Label>

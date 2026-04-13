@@ -1,17 +1,37 @@
-import { DEFAULT_BLOCK_WEEKS } from "@/lib/blocks";
+import { StorageQuotaBar } from "@/components/StorageQuotaBar";
+import { toaster } from "@/components/ui/toaster";
 import pb from "@/lib/pocketbase";
+import { listPrograms } from "@/lib/services/programService";
 import {
   DEFAULT_AHEAD_WEEKS,
+  DEFAULT_WORK_WEEK,
   getSettings,
+  setActivePrograms,
   updateSettings,
 } from "@/lib/services/settingsService";
+import { getStorageUsage } from "@/lib/services/storageService";
 import {
+  createAndApplyVacation,
+  deleteVacation,
+  listVacations,
+  previewStackOverflow,
+} from "@/lib/services/vacationService";
+import type { Program, Vacation, VacationStrategy } from "@/types/domain";
+import {
+  Alert,
+  Avatar,
+  Badge,
   Box,
   Button,
+  Checkbox,
+  Dialog,
   Field,
+  Grid,
   Heading,
   HStack,
   Input,
+  Link,
+  NativeSelect,
   Stack,
   Text,
 } from "@chakra-ui/react";
@@ -19,22 +39,37 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 type CollectionName =
-  | "regula_areas"
   | "regula_programs"
+  | "regula_modules"
+  | "regula_lessons"
+  | "regula_assessments"
+  | "regula_reviews"
   | "regula_resources"
-  | "regula_study_items"
   | "regula_study_sessions"
   | "regula_item_events"
-  | "regula_user_settings";
+  | "regula_user_settings"
+  | "regula_vacations";
 
 const COLLECTIONS: { key: CollectionName; label: string }[] = [
-  { key: "regula_areas", label: "Areas" },
   { key: "regula_programs", label: "Programs" },
+  { key: "regula_modules", label: "Modules" },
+  { key: "regula_lessons", label: "Lessons" },
+  { key: "regula_assessments", label: "Assessments" },
+  { key: "regula_reviews", label: "Reviews" },
   { key: "regula_resources", label: "Resources" },
-  { key: "regula_study_items", label: "Study Items" },
   { key: "regula_study_sessions", label: "Study Sessions" },
   { key: "regula_item_events", label: "Item Events" },
   { key: "regula_user_settings", label: "User Settings" },
+  { key: "regula_vacations", label: "Vacations" },
+];
+
+const SECTION_NAV = [
+  { id: "general", label: "General" },
+  { id: "active-programs", label: "Active Programs" },
+  { id: "storage", label: "Storage" },
+  { id: "vacations", label: "Vacations" },
+  { id: "export-data", label: "Export Data" },
+  { id: "account", label: "Account" },
 ];
 
 function downloadBlob(filename: string, content: string, mime: string) {
@@ -107,206 +142,802 @@ function ExportButton({
   };
 
   return (
-    <HStack
-      justify="space-between"
+    <Box
+      id={`export-${collectionKey}`}
       p={3}
       borderWidth={1}
       borderRadius="md"
       bg="bg.subtle"
     >
-      <Text fontWeight="medium">{label}</Text>
-      <HStack>
-        <Button
-          size="xs"
-          variant="outline"
-          loading={loadingJson}
-          onClick={() => void exportJson()}
-        >
-          JSON
-        </Button>
-        <Button
-          size="xs"
-          variant="outline"
-          loading={loadingCsv}
-          onClick={() => void exportCsv()}
-        >
-          CSV
-        </Button>
-      </HStack>
-    </HStack>
-  );
-}
-
-function BlockConfig() {
-  const qc = useQueryClient();
-  const { data: settings } = useQuery({
-    queryKey: ["user_settings"],
-    queryFn: getSettings,
-  });
-  const [blockWeeks, setBlockWeeks] = useState<number | undefined>(undefined);
-  const currentWeeks =
-    blockWeeks ?? settings?.block_weeks ?? DEFAULT_BLOCK_WEEKS;
-
-  const updateMut = useMutation({
-    mutationFn: (weeks: number) =>
-      updateSettings(settings!.id, { block_weeks: weeks }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["user_settings"] }),
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (settings) updateMut.mutate(currentWeeks);
-  };
-
-  return (
-    <Box
-      as="form"
-      onSubmit={handleSubmit}
-      p={4}
-      borderWidth={1}
-      borderRadius="md"
-      bg="bg.subtle"
-      maxW="480px"
-      mx="auto"
-    >
-      <Stack gap={3}>
-        <Field.Root>
-          <Field.Label>Default block duration (weeks)</Field.Label>
-          <Field.HelperText>
-            Blocks are N weeks long (2–6) and are always followed by a rest
-            week. Individual blocks can override this default.
-          </Field.HelperText>
-          <Input
-            type="number"
-            min={2}
-            max={6}
-            step={1}
-            value={currentWeeks}
-            onChange={(e) => setBlockWeeks(Number(e.target.value))}
-            maxW="80px"
-          />
-        </Field.Root>
-        <Box>
+      <HStack justify="space-between">
+        <Text fontWeight="medium" fontSize="sm">
+          {label}
+        </Text>
+        <HStack gap={2}>
           <Button
-            type="submit"
-            size="sm"
-            loading={updateMut.isPending}
-            disabled={!settings}
+            size="xs"
+            variant="outline"
+            loading={loadingJson}
+            onClick={() => void exportJson()}
           >
-            Save
+            JSON
           </Button>
-        </Box>
-      </Stack>
+          <Button
+            size="xs"
+            variant="outline"
+            loading={loadingCsv}
+            onClick={() => void exportCsv()}
+          >
+            CSV
+          </Button>
+        </HStack>
+      </HStack>
     </Box>
   );
 }
 
-function AheadWeeksConfig() {
+function StorageConfig() {
+  const { data: usage } = useQuery({
+    queryKey: ["storage_usage"],
+    queryFn: getStorageUsage,
+  });
+
+  if (!usage) return null;
+
+  return <StorageQuotaBar used={usage.used} quota={usage.quota} />;
+}
+
+function GeneralSettings() {
   const qc = useQueryClient();
   const { data: settings } = useQuery({
     queryKey: ["user_settings"],
     queryFn: getSettings,
   });
+
   const [aheadWeeks, setAheadWeeks] = useState<number | undefined>(undefined);
-  const currentAhead =
+  const [workWeek, setWorkWeek] = useState<string[] | undefined>(undefined);
+
+  const currentAheadWeeks =
     aheadWeeks ?? settings?.ahead_weeks ?? DEFAULT_AHEAD_WEEKS;
 
+  const settingsWorkWeek = settings?.work_week?.length
+    ? settings.work_week
+    : DEFAULT_WORK_WEEK;
+  const currentWorkWeek = workWeek ?? settingsWorkWeek;
+
+  const isDirty =
+    (aheadWeeks !== undefined && aheadWeeks !== settings?.ahead_weeks) ||
+    (workWeek !== undefined &&
+      JSON.stringify([...workWeek].sort()) !==
+        JSON.stringify([...settingsWorkWeek].sort()));
+
   const updateMut = useMutation({
-    mutationFn: (weeks: number) =>
-      updateSettings(settings!.id, { ahead_weeks: weeks }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["user_settings"] }),
+    mutationFn: (data: { ahead_weeks: number; work_week: string[] }) =>
+      updateSettings(settings!.id, data),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["user_settings"] });
+      setAheadWeeks(undefined);
+      setWorkWeek(undefined);
+      toaster.create({ type: "success", title: "Settings saved" });
+    },
+    onError: () => {
+      toaster.create({ type: "error", title: "Failed to save settings" });
+    },
   });
+
+  const toggleWorkDay = (day: string) => {
+    const base = currentWorkWeek;
+    const next = base.includes(day)
+      ? base.filter((d) => d !== day)
+      : [...base, day];
+    setWorkWeek(next);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (settings) updateMut.mutate(currentAhead);
+    if (settings) {
+      updateMut.mutate({
+        ahead_weeks: currentAheadWeeks,
+        work_week: currentWorkWeek,
+      });
+    }
+  };
+
+  const ALL_DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+  const DAY_LABEL: Record<string, string> = {
+    sun: "Su",
+    mon: "Mo",
+    tue: "Tu",
+    wed: "We",
+    thu: "Th",
+    fri: "Fr",
+    sat: "Sa",
   };
 
   return (
-    <Box
-      as="form"
-      onSubmit={handleSubmit}
-      p={4}
-      borderWidth={1}
-      borderRadius="md"
-      bg="bg.subtle"
-      maxW="480px"
-      mx="auto"
-    >
-      <Stack gap={3}>
-        <Field.Root>
-          <Field.Label>Weeks ahead allowed</Field.Label>
+    <Box id="general-settings" as="form" onSubmit={handleSubmit}>
+      <Stack gap={6}>
+        <Field.Root id="ahead-weeks">
+          <Field.Label>Study ahead window</Field.Label>
           <Field.HelperText>
-            How many weeks ahead of a planned item's scheduled date you can
-            start a session for it (1–2).
+            How many weeks ahead of a lesson's scheduled date you can start a
+            session for it (1–4).
           </Field.HelperText>
-          <Input
-            type="number"
-            min={1}
-            max={2}
-            step={1}
-            value={currentAhead}
-            onChange={(e) => setAheadWeeks(Number(e.target.value))}
-            maxW="80px"
-          />
+          <HStack mt={1}>
+            <Input
+              type="number"
+              min={1}
+              max={4}
+              step={1}
+              value={currentAheadWeeks}
+              onChange={(e) => setAheadWeeks(Number(e.target.value))}
+              w="80px"
+            />
+            <Text fontSize="sm" color="fg.muted">
+              weeks
+            </Text>
+          </HStack>
         </Field.Root>
-        <Box>
+
+        <Field.Root id="work-week">
+          <Field.Label>Work week</Field.Label>
+          <Field.HelperText>
+            Days you work on. Lessons will only be scheduled on these days.
+          </Field.HelperText>
+          <HStack mt={2} gap={1} flexWrap="wrap">
+            {ALL_DAYS.map((day) => {
+              const active = currentWorkWeek.includes(day);
+              return (
+                <Box
+                  key={day}
+                  as="button"
+                  onClick={() => toggleWorkDay(day)}
+                  px={3}
+                  py={1}
+                  borderRadius="md"
+                  borderWidth={1}
+                  fontSize="sm"
+                  fontWeight="medium"
+                  cursor="pointer"
+                  bg={active ? "blue.500" : "bg.subtle"}
+                  color={active ? "white" : "fg.muted"}
+                  borderColor={active ? "blue.500" : "border"}
+                  _hover={{ opacity: 0.85 }}
+                  transition="all 0.15s"
+                >
+                  {DAY_LABEL[day]}
+                </Box>
+              );
+            })}
+          </HStack>
+        </Field.Root>
+
+        <HStack>
           <Button
             type="submit"
             size="sm"
             loading={updateMut.isPending}
             disabled={!settings}
+            colorPalette={isDirty ? "blue" : undefined}
           >
-            Save
+            Save changes
           </Button>
+          {isDirty && (
+            <Text fontSize="xs" color="fg.muted">
+              Unsaved changes
+            </Text>
+          )}
+        </HStack>
+      </Stack>
+    </Box>
+  );
+}
+
+function ActiveProgramsConfig() {
+  const qc = useQueryClient();
+
+  const { data: settings } = useQuery({
+    queryKey: ["user_settings"],
+    queryFn: getSettings,
+  });
+
+  const { data: allPrograms = [] } = useQuery<Program[]>({
+    queryKey: ["programs"],
+    queryFn: listPrograms,
+  });
+
+  const programs = allPrograms.filter(
+    (p) => p.type === "term" || p.type === "year",
+  );
+
+  const activeIds: string[] = settings?.active_programs ?? [];
+
+  const updateMut = useMutation({
+    mutationFn: (ids: string[]) => setActivePrograms(settings!.id, ids),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["user_settings"] });
+      toaster.create({ type: "success", title: "Active programs updated" });
+    },
+    onError: () => {
+      toaster.create({ type: "error", title: "Failed to update programs" });
+    },
+  });
+
+  const toggleProgram = (id: string) => {
+    if (!settings) return;
+    const updated = activeIds.includes(id)
+      ? activeIds.filter((p) => p !== id)
+      : [...activeIds, id];
+    updateMut.mutate(updated);
+  };
+
+  return (
+    <Stack id="active-programs" gap={3}>
+      <HStack justify="space-between">
+        <Text fontSize="sm" color="fg.muted">
+          Only active programs appear on the dashboard and in filter views.
+        </Text>
+        {programs.length > 0 && (
+          <Badge variant="subtle" colorPalette="blue">
+            {programs.filter((p) => activeIds.includes(p.id)).length} /{" "}
+            {programs.length} active
+          </Badge>
+        )}
+      </HStack>
+      {programs.length === 0 ? (
+        <Text fontSize="sm" color="fg.muted" fontStyle="italic">
+          No programs yet.
+        </Text>
+      ) : (
+        <Stack gap={2}>
+          {programs.map((p) => (
+            <HStack
+              key={p.id}
+              p={3}
+              borderWidth={1}
+              borderRadius="md"
+              bg={
+                activeIds.includes(p.id) ? "colorPalette.subtle" : "bg.subtle"
+              }
+              borderColor={
+                activeIds.includes(p.id) ? "colorPalette.muted" : "border"
+              }
+              transition="all 0.15s"
+              cursor={updateMut.isPending ? "not-allowed" : "pointer"}
+              opacity={updateMut.isPending ? 0.7 : 1}
+              onClick={() => !updateMut.isPending && toggleProgram(p.id)}
+            >
+              <Checkbox.Root
+                checked={activeIds.includes(p.id)}
+                onCheckedChange={() => toggleProgram(p.id)}
+                size="sm"
+                disabled={updateMut.isPending}
+              >
+                <Checkbox.HiddenInput />
+                <Checkbox.Control />
+              </Checkbox.Root>
+              <Text
+                fontSize="sm"
+                fontWeight={activeIds.includes(p.id) ? "medium" : "normal"}
+              >
+                {p.name}
+              </Text>
+            </HStack>
+          ))}
+        </Stack>
+      )}
+    </Stack>
+  );
+}
+
+function SettingSection({
+  id,
+  title,
+  description,
+  children,
+}: {
+  id: string;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Box id={id} scrollMarginTop={4}>
+      <Stack gap={4}>
+        <Box>
+          <Heading size="md">{title}</Heading>
+          {description && (
+            <Text mt={1} fontSize="sm" color="fg.muted">
+              {description}
+            </Text>
+          )}
+        </Box>
+        <Box p={5} borderWidth={1} borderRadius="lg" bg="bg.panel">
+          {children}
         </Box>
       </Stack>
     </Box>
+  );
+}
+
+function VacationsConfig() {
+  const qc = useQueryClient();
+
+  const { data: settings } = useQuery({
+    queryKey: ["user_settings"],
+    queryFn: getSettings,
+  });
+
+  const { data: vacations = [] } = useQuery<Vacation[]>({
+    queryKey: ["vacations"],
+    queryFn: listVacations,
+  });
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [strategy, setStrategy] = useState<VacationStrategy>("push_back");
+  const [recoveryBefore, setRecoveryBefore] = useState(0);
+  const [recoveryAfter, setRecoveryAfter] = useState(0);
+  const [overrideWorkWeek, setOverrideWorkWeek] = useState(false);
+  const [workWeekOverrideDays, setWorkWeekOverrideDays] = useState<string[]>(
+    [],
+  );
+  const [overflowCount, setOverflowCount] = useState<number | null>(null);
+  const [overflowDialogOpen, setOverflowDialogOpen] = useState(false);
+  const [pendingData, setPendingData] = useState<Omit<
+    Vacation,
+    "id" | "owner" | "created" | "updated"
+  > | null>(null);
+
+  const globalWorkWeek = settings?.work_week?.length
+    ? settings.work_week
+    : DEFAULT_WORK_WEEK;
+  const ALL_DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+  const DAY_LABEL: Record<string, string> = {
+    sun: "Sunday",
+    mon: "Monday",
+    tue: "Tuesday",
+    wed: "Wednesday",
+    thu: "Thursday",
+    fri: "Friday",
+    sat: "Saturday",
+  };
+  const offDays = ALL_DAYS.filter((d) => !globalWorkWeek.includes(d));
+
+  const createMut = useMutation({
+    mutationFn: createAndApplyVacation,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["vacations"] });
+      void qc.invalidateQueries({ queryKey: ["lessons"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
+      setFormOpen(false);
+      setName("");
+      setStartDate("");
+      setEndDate("");
+      setStrategy("push_back");
+      setRecoveryBefore(0);
+      setRecoveryAfter(0);
+      setOverrideWorkWeek(false);
+      setWorkWeekOverrideDays([]);
+      setPendingData(null);
+      setOverflowCount(null);
+      toaster.create({ type: "success", title: "Vacation scheduled" });
+    },
+    onError: () => {
+      toaster.create({ type: "error", title: "Failed to schedule vacation" });
+    },
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: deleteVacation,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["vacations"] });
+      toaster.create({ type: "success", title: "Vacation deleted" });
+    },
+    onError: () => {
+      toaster.create({ type: "error", title: "Failed to delete vacation" });
+    },
+  });
+
+  const handleSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const data: Omit<Vacation, "id" | "owner" | "created" | "updated"> = {
+      name,
+      start_date: startDate,
+      end_date: endDate,
+      strategy,
+      recovery_before_days: recoveryBefore,
+      recovery_after_days: recoveryAfter,
+      work_week_override_days: overrideWorkWeek ? workWeekOverrideDays : [],
+    };
+
+    if (strategy === "stack" && settings) {
+      const activeIds: string[] = settings.active_programs ?? [];
+      const count = await previewStackOverflow(data, activeIds);
+      if (count > 0) {
+        setOverflowCount(count);
+        setPendingData(data);
+        setOverflowDialogOpen(true);
+        return;
+      }
+    }
+
+    createMut.mutate(data);
+  };
+
+  const strategyLabel: Record<VacationStrategy, string> = {
+    stack: "Stack (pre-vacation)",
+    recovery: "Recovery days",
+    push_back: "Push back",
+  };
+
+  return (
+    <Stack id="vacations" gap={4}>
+      <Alert.Root colorPalette="orange" size="sm">
+        <Alert.Content>
+          <Alert.Description>
+            Rescheduling is applied immediately and cannot be automatically
+            reversed.
+          </Alert.Description>
+        </Alert.Content>
+      </Alert.Root>
+
+      {/* Existing vacations list */}
+      {vacations.length > 0 && (
+        <Stack id="existing-vacations" gap={2}>
+          {vacations.map((v) => (
+            <HStack
+              key={v.id}
+              id={`vacation-${v.id}`}
+              p={3}
+              borderWidth={1}
+              borderRadius="md"
+              bg="bg.subtle"
+              justify="space-between"
+              flexWrap="wrap"
+              gap={2}
+            >
+              <Stack align="flex-start" id={`vacation-${v.id}-details`} gap={0}>
+                <Text fontWeight="medium" fontSize="sm">
+                  {v.name}
+                </Text>
+                <HStack gap={2} mt={0.5}>
+                  <Badge variant="outline" size="sm">
+                    {v.start_date} – {v.end_date}
+                  </Badge>
+                  <Badge colorPalette="blue" variant="subtle" size="sm">
+                    {strategyLabel[v.strategy]}
+                  </Badge>
+                </HStack>
+              </Stack>
+              <Button
+                size="xs"
+                variant="ghost"
+                colorPalette="red"
+                loading={deleteMut.isPending}
+                onClick={() => deleteMut.mutate(v.id)}
+              >
+                Delete
+              </Button>
+            </HStack>
+          ))}
+        </Stack>
+      )}
+
+      {/* Add form toggle */}
+      {!formOpen ? (
+        <Button size="sm" variant="outline" onClick={() => setFormOpen(true)}>
+          Add Vacation
+        </Button>
+      ) : (
+        <Box
+          id="add-vacation"
+          as="form"
+          onSubmit={(e: React.FormEvent) => void handleSchedule(e)}
+          p={4}
+          borderWidth={1}
+          borderRadius="md"
+          bg="bg.muted"
+        >
+          <Stack gap={3}>
+            <Field.Root required>
+              <Field.Label>Name</Field.Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </Field.Root>
+
+            <Stack direction="row" gap={3}>
+              <Field.Root required>
+                <Field.Label>Start Date</Field.Label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  required
+                />
+              </Field.Root>
+              <Field.Root required>
+                <Field.Label>End Date</Field.Label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  required
+                />
+              </Field.Root>
+            </Stack>
+
+            <Field.Root>
+              <Field.Label>Strategy</Field.Label>
+              <NativeSelect.Root>
+                <NativeSelect.Field
+                  value={strategy}
+                  onChange={(e) =>
+                    setStrategy(e.target.value as VacationStrategy)
+                  }
+                >
+                  <option value="push_back">
+                    Push back (shift all dates forward)
+                  </option>
+                  <option value="stack">
+                    Stack (move lessons before vacation)
+                  </option>
+                  <option value="recovery">
+                    Recovery days (spread lessons around vacation)
+                  </option>
+                </NativeSelect.Field>
+                <NativeSelect.Indicator />
+              </NativeSelect.Root>
+            </Field.Root>
+
+            {strategy === "recovery" && (
+              <Stack direction="row" gap={3}>
+                <Field.Root>
+                  <Field.Label>Recovery days before</Field.Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={recoveryBefore}
+                    onChange={(e) => setRecoveryBefore(Number(e.target.value))}
+                    w="80px"
+                  />
+                </Field.Root>
+                <Field.Root>
+                  <Field.Label>Recovery days after</Field.Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={recoveryAfter}
+                    onChange={(e) => setRecoveryAfter(Number(e.target.value))}
+                    w="80px"
+                  />
+                </Field.Root>
+              </Stack>
+            )}
+
+            {offDays.length > 0 && (
+              <Stack gap={2}>
+                <Checkbox.Root
+                  checked={overrideWorkWeek}
+                  onCheckedChange={({ checked }) => {
+                    setOverrideWorkWeek(!!checked);
+                    if (!checked) setWorkWeekOverrideDays([]);
+                  }}
+                  size="sm"
+                >
+                  <Checkbox.HiddenInput />
+                  <Checkbox.Control />
+                  <Checkbox.Label fontSize="sm">
+                    Override work week for this vacation
+                  </Checkbox.Label>
+                </Checkbox.Root>
+                {overrideWorkWeek && (
+                  <Stack gap={1} pl={5}>
+                    <Text fontSize="xs" color="fg.muted">
+                      Select off-days to allow scheduling during this vacation:
+                    </Text>
+                    {offDays.map((day) => (
+                      <Checkbox.Root
+                        key={day}
+                        size="sm"
+                        checked={workWeekOverrideDays.includes(day)}
+                        onCheckedChange={({ checked }) => {
+                          setWorkWeekOverrideDays((prev) =>
+                            checked
+                              ? [...prev, day]
+                              : prev.filter((d) => d !== day),
+                          );
+                        }}
+                      >
+                        <Checkbox.HiddenInput />
+                        <Checkbox.Control />
+                        <Checkbox.Label fontSize="sm">
+                          {DAY_LABEL[day]}
+                        </Checkbox.Label>
+                      </Checkbox.Root>
+                    ))}
+                  </Stack>
+                )}
+              </Stack>
+            )}
+
+            <HStack>
+              <Button type="submit" size="sm" loading={createMut.isPending}>
+                Schedule Vacation
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setFormOpen(false);
+                  setOverrideWorkWeek(false);
+                  setWorkWeekOverrideDays([]);
+                }}
+              >
+                Cancel
+              </Button>
+            </HStack>
+          </Stack>
+        </Box>
+      )}
+
+      {/* Stack overflow confirmation dialog */}
+      <Dialog.Root
+        id="overflow-confirmation"
+        open={overflowDialogOpen}
+        onOpenChange={({ open: o }) => !o && setOverflowDialogOpen(false)}
+      >
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Header>
+              <Dialog.Title>Confirm Schedule</Dialog.Title>
+            </Dialog.Header>
+            <Dialog.Body>
+              <Text>
+                {overflowCount} lesson{overflowCount !== 1 ? "s" : ""} will
+                exceed the 2/day cap due to limited pre-vacation days. Continue
+                anyway?
+              </Text>
+            </Dialog.Body>
+            <Dialog.Footer>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setOverflowDialogOpen(false);
+                  setPendingData(null);
+                  setOverflowCount(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                loading={createMut.isPending}
+                onClick={() => {
+                  if (pendingData) {
+                    setOverflowDialogOpen(false);
+                    createMut.mutate(pendingData);
+                  }
+                }}
+              >
+                Continue
+              </Button>
+            </Dialog.Footer>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Dialog.Root>
+    </Stack>
   );
 }
 
 export default function Settings() {
+  const email = pb.authStore.record?.email as string | undefined;
+  const initials = email ? email[0].toUpperCase() : "?";
+
   return (
-    <Stack id="settings" gap={8}>
-      <Heading size="lg">Settings</Heading>
-
-      <Box id="block-config" w="full">
-        <Heading size="md" mb={4}>
-          Block Configuration
-        </Heading>
-        <BlockConfig />
-      </Box>
-
-      <Box id="ahead-config" w="full">
-        <Heading size="md" mb={4}>
-          Study Ahead
-        </Heading>
-        <AheadWeeksConfig />
-      </Box>
-
-      <Box id="export-data" w="full">
-        <Heading size="md" mb={4}>
-          Export Data
-        </Heading>
-        <Text color="fg.muted" mb={4}>
-          Download a copy of your data in JSON or CSV format.
-        </Text>
-        <Stack gap={2} mx="auto" maxW="480px">
-          {COLLECTIONS.map((c) => (
-            <ExportButton key={c.key} label={c.label} collectionKey={c.key} />
+    <Grid
+      id="settings"
+      templateColumns={{ base: "1fr", md: "180px 1fr" }}
+      gap={8}
+      alignItems="start"
+    >
+      {/* Sidebar nav */}
+      <Box
+        display={{ base: "none", md: "block" }}
+        position="sticky"
+        top={4}
+        pt={1}
+      >
+        <Stack gap={1}>
+          {SECTION_NAV.map((s) => (
+            <Link
+              as={Box}
+              key={s.id}
+              id={`nav-${s.id}`}
+              href={`#${s.id}`}
+              px={3}
+              py={1.5}
+              borderRadius="md"
+              fontSize="sm"
+              color="fg.muted"
+              _hover={{ bg: "bg.muted", color: "fg" }}
+              transition="all 0.15s"
+            >
+              {s.label}
+            </Link>
           ))}
         </Stack>
       </Box>
 
-      <Box id="account">
-        <Heading size="md" mb={4}>
-          Account
-        </Heading>
-        <Text color="fg.muted" fontSize="sm">
-          Logged in as{" "}
-          <strong>{pb.authStore.record?.email as string | undefined}</strong>
-        </Text>
-      </Box>
-    </Stack>
+      {/* Main content */}
+      <Stack id="main-content" gap={10}>
+        <Heading size="lg">Settings</Heading>
+
+        <SettingSection
+          id="general"
+          title="General"
+          description="Configure defaults for scheduling."
+        >
+          <GeneralSettings />
+        </SettingSection>
+
+        <SettingSection
+          id="active-programs"
+          title="Active Programs"
+          description="Choose which programs are visible on the dashboard."
+        >
+          <ActiveProgramsConfig />
+        </SettingSection>
+
+        <SettingSection
+          id="storage"
+          title="Storage"
+          description="Track your attachment storage usage. Default quota is 500 MB."
+        >
+          <StorageConfig />
+        </SettingSection>
+
+        <SettingSection
+          id="vacations"
+          title="Vacations"
+          description="Schedule vacation periods — lessons will be automatically rescheduled using the chosen strategy."
+        >
+          <VacationsConfig />
+        </SettingSection>
+
+        <SettingSection
+          id="export-data"
+          title="Export Data"
+          description="Download a copy of your data in JSON or CSV format."
+        >
+          <Grid templateColumns={{ base: "1fr", sm: "1fr 1fr" }} gap={2}>
+            {COLLECTIONS.map((c) => (
+              <ExportButton key={c.key} label={c.label} collectionKey={c.key} />
+            ))}
+          </Grid>
+        </SettingSection>
+
+        <SettingSection id="account" title="Account">
+          <HStack justify="space-between" gap={4}>
+            <Avatar.Root size="md" colorPalette="blue">
+              <Avatar.Fallback>{initials}</Avatar.Fallback>
+            </Avatar.Root>
+            <Stack align="flex-end" gap={2}>
+              <Text fontWeight="medium" fontSize="sm">
+                {email}
+              </Text>
+              <Text fontSize="xs" color="fg.muted">
+                Signed in
+              </Text>
+            </Stack>
+          </HStack>
+        </SettingSection>
+      </Stack>
+    </Grid>
   );
 }

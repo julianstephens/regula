@@ -352,13 +352,26 @@
     "deleteRule": "owner = @request.auth.id"
   },
   {
-    "id": "sitmcolid000001",
-    "name": "regula_study_items",
+    "id": "modulcolid00001",
+    "name": "regula_modules",
     "type": "base",
     "system": false,
     "fields": [
       {
-        "id": "sitm_title01",
+        "id": "modul_prog001",
+        "name": "program",
+        "type": "relation",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "progrscolid0001",
+        "cascadeDelete": true,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "modul_titl001",
         "name": "title",
         "type": "text",
         "required": true,
@@ -367,8 +380,8 @@
         "system": false
       },
       {
-        "id": "sitm_notes01",
-        "name": "notes",
+        "id": "modul_slug001",
+        "name": "slug",
         "type": "text",
         "required": false,
         "presentable": false,
@@ -376,41 +389,8 @@
         "system": false
       },
       {
-        "id": "sitm_ddate01",
-        "name": "due_date",
-        "type": "date",
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "min": "",
-        "max": ""
-      },
-      {
-        "id": "sitm_schd001",
-        "name": "scheduled_date",
-        "type": "date",
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "min": "",
-        "max": ""
-      },
-      {
-        "id": "sitm_cmpd001",
-        "name": "completion_date",
-        "type": "date",
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "min": "",
-        "max": ""
-      },
-      {
-        "id": "sitm_emins01",
-        "name": "estimated_minutes",
+        "id": "modul_ordr001",
+        "name": "order",
         "type": "number",
         "required": false,
         "presentable": false,
@@ -421,85 +401,38 @@
         "noDecimal": false
       },
       {
-        "id": "sitm_itype01",
-        "name": "item_type",
-        "type": "select",
+        "id": "modul_goal001",
+        "name": "goal",
+        "type": "text",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false
+      },
+      {
+        "id": "modul_sdat001",
+        "name": "start_date",
+        "type": "date",
         "required": false,
         "presentable": false,
         "hidden": false,
         "system": false,
-        "maxSelect": 1,
-        "values": [
-          "reading",
-          "writing",
-          "memorization",
-          "exercise",
-          "review",
-          "quiz",
-          "exam",
-          "paper",
-          "other"
-        ]
+        "min": "",
+        "max": ""
       },
       {
-        "id": "sitm_stat001",
-        "name": "status",
-        "type": "select",
-        "required": true,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "maxSelect": 1,
-        "values": [
-          "planned",
-          "available",
-          "in_progress",
-          "completed",
-          "deferred",
-          "cancelled"
-        ]
-      },
-      {
-        "id": "sitm_area001",
-        "name": "area",
-        "type": "relation",
+        "id": "modul_edat001",
+        "name": "end_date",
+        "type": "date",
         "required": false,
         "presentable": false,
         "hidden": false,
         "system": false,
-        "collectionId": "areascolid00001",
-        "cascadeDelete": false,
-        "minSelect": null,
-        "maxSelect": 1
+        "min": "",
+        "max": ""
       },
       {
-        "id": "sitm_prog001",
-        "name": "program",
-        "type": "relation",
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "collectionId": "progrscolid0001",
-        "cascadeDelete": true,
-        "minSelect": null,
-        "maxSelect": 1
-      },
-      {
-        "id": "sitm_rsrc001",
-        "name": "resource",
-        "type": "relation",
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "collectionId": "resrccolid00001",
-        "cascadeDelete": false,
-        "minSelect": null,
-        "maxSelect": 1
-      },
-      {
-        "id": "sitm_owner01",
+        "id": "modul_own001",
         "name": "owner",
         "type": "relation",
         "required": true,
@@ -512,7 +445,7 @@
         "maxSelect": 1
       },
       {
-        "id": "sitm_creat01",
+        "id": "modul_creat01",
         "name": "created",
         "type": "autodate",
         "system": true,
@@ -522,7 +455,820 @@
         "onUpdate": false
       },
       {
-        "id": "sitm_updat01",
+        "id": "modul_updat01",
+        "name": "updated",
+        "type": "autodate",
+        "system": true,
+        "presentable": false,
+        "hidden": false,
+        "onCreate": true,
+        "onUpdate": true
+      }
+    ],
+    "indexes": [],
+    "listRule": "owner = @request.auth.id",
+    "viewRule": "owner = @request.auth.id",
+    "createRule": "owner = @request.auth.id",
+    "updateRule": "owner = @request.auth.id",
+    "deleteRule": "owner = @request.auth.id"
+  },
+  {
+    "id": "lessncolid00001",
+    "name": "regula_lessons",
+    "type": "base",
+    "system": false,
+    "fields": [
+      {
+        "id": "lessn_titl001",
+        "name": "title",
+        "type": "text",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false
+      },
+      {
+        "id": "lessn_type001",
+        "name": "type",
+        "type": "select",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 1,
+        "values": [
+          "lesson",
+          "reading",
+          "writing",
+          "exercise",
+          "memorization",
+          "review",
+          "other"
+        ]
+      },
+      {
+        "id": "lessn_stat001",
+        "name": "status",
+        "type": "select",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 1,
+        "values": [
+          "not_started",
+          "active",
+          "blocked",
+          "submitted",
+          "completed",
+          "archived"
+        ]
+      },
+      {
+        "id": "lessn_prog001",
+        "name": "program",
+        "type": "relation",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "progrscolid0001",
+        "cascadeDelete": true,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "lessn_modul01",
+        "name": "module",
+        "type": "relation",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "modulcolid00001",
+        "cascadeDelete": false,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "lessn_rsrc001",
+        "name": "resource",
+        "type": "relation",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "resrccolid00001",
+        "cascadeDelete": false,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "lessn_avon001",
+        "name": "available_on",
+        "type": "date",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": "",
+        "max": ""
+      },
+      {
+        "id": "lessn_duat001",
+        "name": "due_at",
+        "type": "date",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": "",
+        "max": ""
+      },
+      {
+        "id": "lessn_cmat001",
+        "name": "completed_at",
+        "type": "date",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": "",
+        "max": ""
+      },
+      {
+        "id": "lessn_emin001",
+        "name": "estimated_minutes",
+        "type": "number",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": null,
+        "max": null,
+        "noDecimal": false
+      },
+      {
+        "id": "lessn_grdt001",
+        "name": "grade_type",
+        "type": "select",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 1,
+        "values": ["none", "pass_fail", "numeric", "rubric"]
+      },
+      {
+        "id": "lessn_mast001",
+        "name": "mastery_evidence",
+        "type": "text",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false
+      },
+      {
+        "id": "lessn_note001",
+        "name": "notes",
+        "type": "text",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false
+      },
+      {
+        "id": "lessn_own001",
+        "name": "owner",
+        "type": "relation",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "_pb_users_auth_",
+        "cascadeDelete": false,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "lessn_prereq1",
+        "name": "prerequisites",
+        "type": "relation",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "lessncolid00001",
+        "cascadeDelete": false,
+        "minSelect": null,
+        "maxSelect": null
+      },
+      {
+        "id": "lessn_creat01",
+        "name": "created",
+        "type": "autodate",
+        "system": true,
+        "presentable": false,
+        "hidden": false,
+        "onCreate": true,
+        "onUpdate": false
+      },
+      {
+        "id": "lessn_updat01",
+        "name": "updated",
+        "type": "autodate",
+        "system": true,
+        "presentable": false,
+        "hidden": false,
+        "onCreate": true,
+        "onUpdate": true
+      }
+    ],
+    "indexes": [],
+    "listRule": "owner = @request.auth.id",
+    "viewRule": "owner = @request.auth.id",
+    "createRule": "owner = @request.auth.id",
+    "updateRule": "owner = @request.auth.id",
+    "deleteRule": "owner = @request.auth.id"
+  },
+  {
+    "id": "assncolid000001",
+    "name": "regula_assignments",
+    "type": "base",
+    "system": false,
+    "fields": [
+      {
+        "id": "assn_titl0001",
+        "name": "title",
+        "type": "text",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false
+      },
+      {
+        "id": "assn_type0001",
+        "name": "type",
+        "type": "select",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 1,
+        "values": [
+          "essay",
+          "paper",
+          "problem_set",
+          "reflection",
+          "translation",
+          "presentation",
+          "other"
+        ]
+      },
+      {
+        "id": "assn_stat0001",
+        "name": "status",
+        "type": "select",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 1,
+        "values": [
+          "not_started",
+          "in_progress",
+          "submitted",
+          "graded",
+          "archived"
+        ]
+      },
+      {
+        "id": "assn_lessn001",
+        "name": "lesson",
+        "type": "relation",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "lessncolid00001",
+        "cascadeDelete": true,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "assn_modul001",
+        "name": "module",
+        "type": "relation",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "modulcolid00001",
+        "cascadeDelete": false,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "assn_prog0001",
+        "name": "program",
+        "type": "relation",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "progrscolid0001",
+        "cascadeDelete": true,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "assn_duat0001",
+        "name": "due_at",
+        "type": "date",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": "",
+        "max": ""
+      },
+      {
+        "id": "assn_subat001",
+        "name": "submitted_at",
+        "type": "date",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": "",
+        "max": ""
+      },
+      {
+        "id": "assn_grdt0001",
+        "name": "grade_type",
+        "type": "select",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 1,
+        "values": ["none", "pass_fail", "numeric", "rubric"]
+      },
+      {
+        "id": "assn_mast0001",
+        "name": "mastery_evidence",
+        "type": "text",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false
+      },
+      {
+        "id": "assn_emin0001",
+        "name": "estimated_minutes",
+        "type": "number",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": null,
+        "max": null,
+        "noDecimal": false
+      },
+      {
+        "id": "assn_desc0001",
+        "name": "description",
+        "type": "text",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false
+      },
+      {
+        "id": "assn_own00001",
+        "name": "owner",
+        "type": "relation",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "_pb_users_auth_",
+        "cascadeDelete": false,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "assn_creat001",
+        "name": "created",
+        "type": "autodate",
+        "system": true,
+        "presentable": false,
+        "hidden": false,
+        "onCreate": true,
+        "onUpdate": false
+      },
+      {
+        "id": "assn_updat001",
+        "name": "updated",
+        "type": "autodate",
+        "system": true,
+        "presentable": false,
+        "hidden": false,
+        "onCreate": true,
+        "onUpdate": true
+      }
+    ],
+    "indexes": [],
+    "listRule": "owner = @request.auth.id",
+    "viewRule": "owner = @request.auth.id",
+    "createRule": "owner = @request.auth.id",
+    "updateRule": "owner = @request.auth.id",
+    "deleteRule": "owner = @request.auth.id"
+  },
+  {
+    "id": "asssmcolid00001",
+    "name": "regula_assessments",
+    "type": "base",
+    "system": false,
+    "fields": [
+      {
+        "id": "assm_titl0001",
+        "name": "title",
+        "type": "text",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false
+      },
+      {
+        "id": "assm_atype001",
+        "name": "assessment_type",
+        "type": "select",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 1,
+        "values": [
+          "exam",
+          "paper",
+          "essay",
+          "oral",
+          "translation",
+          "recitation",
+          "reflection",
+          "project",
+          "practicum"
+        ]
+      },
+      {
+        "id": "assm_smode001",
+        "name": "submission_mode",
+        "type": "select",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 1,
+        "values": ["written", "oral", "digital", "none"]
+      },
+      {
+        "id": "assm_stat0001",
+        "name": "status",
+        "type": "select",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 1,
+        "values": [
+          "not_started",
+          "in_progress",
+          "submitted",
+          "graded",
+          "archived"
+        ]
+      },
+      {
+        "id": "assm_lessn001",
+        "name": "lesson",
+        "type": "relation",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "lessncolid00001",
+        "cascadeDelete": false,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "assm_modul001",
+        "name": "module",
+        "type": "relation",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "modulcolid00001",
+        "cascadeDelete": true,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "assm_prog0001",
+        "name": "program",
+        "type": "relation",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "progrscolid0001",
+        "cascadeDelete": true,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "assm_scor0001",
+        "name": "score",
+        "type": "number",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": null,
+        "max": null,
+        "noDecimal": false
+      },
+      {
+        "id": "assm_mscr0001",
+        "name": "max_score",
+        "type": "number",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": null,
+        "max": null,
+        "noDecimal": false
+      },
+      {
+        "id": "assm_pass0001",
+        "name": "passed",
+        "type": "bool",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false
+      },
+      {
+        "id": "assm_fbck0001",
+        "name": "feedback",
+        "type": "text",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false
+      },
+      {
+        "id": "assm_prmp0001",
+        "name": "prompt",
+        "type": "text",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false
+      },
+      {
+        "id": "assm_mtjs0001",
+        "name": "metadata_json",
+        "type": "text",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false
+      },
+      {
+        "id": "assm_subat001",
+        "name": "submitted_at",
+        "type": "date",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": "",
+        "max": ""
+      },
+      {
+        "id": "assm_wght0001",
+        "name": "weight",
+        "type": "number",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": null,
+        "max": null,
+        "noDecimal": false
+      },
+      {
+        "id": "assm_duat0001",
+        "name": "due_at",
+        "type": "date",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": "",
+        "max": ""
+      },
+      {
+        "id": "assm_cmat0001",
+        "name": "completed_at",
+        "type": "date",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": "",
+        "max": ""
+      },
+      {
+        "id": "assm_grdt0001",
+        "name": "grade_type",
+        "type": "select",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 1,
+        "values": ["none", "pass_fail", "numeric", "rubric"]
+      },
+      {
+        "id": "assm_own00001",
+        "name": "owner",
+        "type": "relation",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "_pb_users_auth_",
+        "cascadeDelete": false,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "assm_creat001",
+        "name": "created",
+        "type": "autodate",
+        "system": true,
+        "presentable": false,
+        "hidden": false,
+        "onCreate": true,
+        "onUpdate": false
+      },
+      {
+        "id": "assm_updat001",
+        "name": "updated",
+        "type": "autodate",
+        "system": true,
+        "presentable": false,
+        "hidden": false,
+        "onCreate": true,
+        "onUpdate": true
+      }
+    ],
+    "indexes": [],
+    "listRule": "owner = @request.auth.id",
+    "viewRule": "owner = @request.auth.id",
+    "createRule": "owner = @request.auth.id",
+    "updateRule": "owner = @request.auth.id",
+    "deleteRule": "owner = @request.auth.id"
+  },
+  {
+    "id": "reviwcolid00001",
+    "name": "regula_reviews",
+    "type": "base",
+    "system": false,
+    "fields": [
+      {
+        "id": "revw_lessn001",
+        "name": "lesson",
+        "type": "relation",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "lessncolid00001",
+        "cascadeDelete": true,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "revw_duat0001",
+        "name": "due_at",
+        "type": "date",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": "",
+        "max": ""
+      },
+      {
+        "id": "revw_nrat0001",
+        "name": "next_review_at",
+        "type": "date",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": "",
+        "max": ""
+      },
+      {
+        "id": "revw_intd0001",
+        "name": "interval_days",
+        "type": "number",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": null,
+        "max": null,
+        "noDecimal": false
+      },
+      {
+        "id": "revw_ease0001",
+        "name": "ease_factor",
+        "type": "number",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": null,
+        "max": null,
+        "noDecimal": false
+      },
+      {
+        "id": "revw_lrat0001",
+        "name": "last_reviewed_at",
+        "type": "date",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": "",
+        "max": ""
+      },
+      {
+        "id": "revw_stat0001",
+        "name": "status",
+        "type": "select",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 1,
+        "values": ["active", "suspended", "completed"]
+      },
+      {
+        "id": "revw_fcnt0001",
+        "name": "failure_count",
+        "type": "number",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": null,
+        "max": null,
+        "noDecimal": false
+      },
+      {
+        "id": "revw_own00001",
+        "name": "owner",
+        "type": "relation",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "_pb_users_auth_",
+        "cascadeDelete": false,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "revw_creat001",
+        "name": "created",
+        "type": "autodate",
+        "system": true,
+        "presentable": false,
+        "hidden": false,
+        "onCreate": true,
+        "onUpdate": false
+      },
+      {
+        "id": "revw_updat001",
         "name": "updated",
         "type": "autodate",
         "system": true,
@@ -618,14 +1364,14 @@
         "values": ["completed", "partial", "blocked", "abandoned"]
       },
       {
-        "id": "ssess_sitms1",
-        "name": "study_items",
+        "id": "ssess_lssns1",
+        "name": "lessons",
         "type": "relation",
         "required": false,
         "presentable": false,
         "hidden": false,
         "system": false,
-        "collectionId": "sitmcolid000001",
+        "collectionId": "lessncolid00001",
         "cascadeDelete": false,
         "minSelect": null,
         "maxSelect": null
@@ -720,14 +1466,14 @@
         ]
       },
       {
-        "id": "ievt_sitm001",
-        "name": "study_item",
+        "id": "ievt_lessn01",
+        "name": "lesson",
         "type": "relation",
         "required": true,
         "presentable": false,
         "hidden": false,
         "system": false,
-        "collectionId": "sitmcolid000001",
+        "collectionId": "lessncolid00001",
         "cascadeDelete": true,
         "minSelect": null,
         "maxSelect": 1
@@ -804,6 +1550,19 @@
         "noDecimal": false
       },
       {
+        "id": "uset_aprog01",
+        "name": "active_programs",
+        "type": "relation",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "progrscolid0001",
+        "cascadeDelete": false,
+        "minSelect": null,
+        "maxSelect": null
+      },
+      {
         "id": "uset_owner01",
         "name": "owner",
         "type": "relation",
@@ -828,97 +1587,6 @@
       },
       {
         "id": "uset_updat01",
-        "name": "updated",
-        "type": "autodate",
-        "system": true,
-        "presentable": false,
-        "hidden": false,
-        "onCreate": true,
-        "onUpdate": true
-      }
-    ],
-    "indexes": [],
-    "listRule": "owner = @request.auth.id",
-    "viewRule": "owner = @request.auth.id",
-    "createRule": "owner = @request.auth.id",
-    "updateRule": "owner = @request.auth.id",
-    "deleteRule": "owner = @request.auth.id"
-  },
-  {
-    "id": "csesscolid0001",
-    "name": "regula_course_sessions",
-    "type": "base",
-    "system": false,
-    "fields": [
-      {
-        "id": "csess_crs001",
-        "name": "course",
-        "type": "relation",
-        "required": true,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "collectionId": "progrscolid0001",
-        "cascadeDelete": true,
-        "minSelect": null,
-        "maxSelect": 1
-      },
-      {
-        "id": "csess_date01",
-        "name": "date",
-        "type": "date",
-        "required": true,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "min": "",
-        "max": ""
-      },
-      {
-        "id": "csess_note01",
-        "name": "notes",
-        "type": "text",
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "system": false
-      },
-      {
-        "id": "csess_stat01",
-        "name": "status",
-        "type": "select",
-        "required": true,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "maxSelect": 1,
-        "values": ["scheduled", "completed", "missed", "made_up"]
-      },
-      {
-        "id": "csess_own001",
-        "name": "owner",
-        "type": "relation",
-        "required": true,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "collectionId": "_pb_users_auth_",
-        "cascadeDelete": false,
-        "minSelect": null,
-        "maxSelect": 1
-      },
-      {
-        "id": "csess_creat1",
-        "name": "created",
-        "type": "autodate",
-        "system": true,
-        "presentable": false,
-        "hidden": false,
-        "onCreate": true,
-        "onUpdate": false
-      },
-      {
-        "id": "csess_updat1",
         "name": "updated",
         "type": "autodate",
         "system": true,

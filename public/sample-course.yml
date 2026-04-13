@@ -1,0 +1,84 @@
+name: "Classical Rhetoric"
+type: course # year | term | block | custom | course
+status: planned # default: planned
+description: "A survey of classical rhetorical theory from Aristotle to Cicero."
+start_date: "2026-09-01"
+end_date: "2027-05-31"
+area: "Humanities" # matched by name lookup; optional
+meeting_days: [mon, wed, fri] # optional, for type=course
+
+modules:
+  - title: "Unit 1: Foundations"
+    slug: "unit-1" # optional — auto-generated from title if absent
+    order: 1 # optional — positional if absent
+    goal: "Understand the origins and foundations of rhetoric."
+    start_date: "2026-09-01"
+    end_date: "2026-09-30"
+
+    lessons:
+      - title: "Read Aristotle, Book 1"
+        type: reading # default: "lesson"
+        due_at: "2026-09-08"
+        available_on: "2026-09-01"
+        estimated_minutes: 90
+        notes: "Focus on the definition of rhetoric in Ch. 1–2."
+        resource: "Aristotle's Rhetoric" # title lookup, optional
+
+      - title: "Read Aristotle, Book 2"
+        type: reading
+        due_at: "2026-09-15"
+        available_on: "2026-09-08"
+        estimated_minutes: 90
+
+    assignments:
+      - title: "Essay: Virtue in Rhetoric"
+        type: essay # default: "other"
+        due_at: "2026-09-30"
+        estimated_minutes: 180
+        description: "Analyze how Aristotle connects virtue to persuasion."
+
+    assessments:
+      - title: "Unit 1 Quiz"
+        assessment_type: exam # default: "other"
+        due_at: "2026-09-25"
+        max_score: 100
+
+  - title: "Unit 2: Style & Delivery"
+    slug: "unit-2"
+    order: 2
+    goal: "Master the canons of style and delivery."
+    start_date: "2026-10-01"
+    end_date: "2026-10-31"
+
+    lessons:
+      - title: "Read Cicero, De Oratore (selections)"
+        type: reading
+        due_at: "2026-10-08"
+        available_on: "2026-10-01"
+        estimated_minutes: 120
+
+      - title: "Exercises in Figures of Speech"
+        type: exercise
+        due_at: "2026-10-15"
+        estimated_minutes: 60
+
+    assignments:
+      - title: "Oral Presentation: Classical Style"
+        type: presentation
+        due_at: "2026-10-28"
+        estimated_minutes: 120
+        description: "Deliver a 5-minute speech demonstrating at least 3 figures of speech."
+
+    assessments:
+      - title: "Unit 2 Self-Check"
+        assessment_type: reflection
+        due_at: "2026-10-30"
+        max_score: 50
+
+# Program-level lessons (no module)
+lessons:
+  - title: "Orientation"
+    type: lesson
+    due_at: "2026-09-01"
+    estimated_minutes: 30
+    notes: "Review course overview and requirements."
