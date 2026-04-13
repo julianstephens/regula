@@ -1,3 +1,15 @@
+## v0.1.5
+
+- Add in-app documentation for all features
+- Add combined program dashboard with modules, lessons, assessments, and reviews
+- Add assessments and reviews with file attachment support
+- Add vacation management infrastructure
+- Add reports view
+- Add program import from YAML course-of-study files
+- Add storage quota management
+- Improve dashboard UX
+- Refactor data model to replace study items with lessons
+
 ## v0.1.4
 
 - Improve dashboard UI to better display today's sessions, overdue items, and upcoming homework
