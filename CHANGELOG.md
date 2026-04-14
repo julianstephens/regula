@@ -1,3 +1,10 @@
+## v0.2.1
+
+- Fix bug with program import creating duplicate resources due to invalid cache
+- Improve resource edit UI to avoid confusion when form opens out of view
+- Fix bug with settings navigation not working
+- Add areas configuration to settings page
+
 ## v0.2.0
 
 - Update `pb_collections.json` to match the latest data model changes, including replacing study items with lessons and adding new fields for assessments and reviews

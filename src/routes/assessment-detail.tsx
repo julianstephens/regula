@@ -768,8 +768,9 @@ function ResultsCard({
     completed_at: assessment.completed_at?.slice(0, 10) ?? "",
   });
 
-  const { register, handleSubmit, reset, control } =
-    useForm<ResultsFormValues>({ defaultValues: makeDefaults() });
+  const { register, handleSubmit, reset, control } = useForm<ResultsFormValues>(
+    { defaultValues: makeDefaults() },
+  );
 
   const cancel = () => {
     setEditing(false);
@@ -831,13 +832,13 @@ function ResultsCard({
                 <NativeSelect.Root>
                   <NativeSelect.Field {...register("grade_type")}>
                     <option value="">—</option>
-                    {(
-                      ["none", "pass_fail", "numeric", "rubric"] as const
-                    ).map((v) => (
-                      <option key={v} value={v}>
-                        {v.replace(/_/g, " ")}
-                      </option>
-                    ))}
+                    {(["none", "pass_fail", "numeric", "rubric"] as const).map(
+                      (v) => (
+                        <option key={v} value={v}>
+                          {v.replace(/_/g, " ")}
+                        </option>
+                      ),
+                    )}
                   </NativeSelect.Field>
                   <NativeSelect.Indicator />
                 </NativeSelect.Root>

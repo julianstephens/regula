@@ -2,10 +2,31 @@ import pb from "@/lib/pocketbase";
 import type { Program } from "@/types/domain";
 
 export async function listPrograms(): Promise<Program[]> {
-  return pb.collection("regula_programs").getFullList({
+  const programs = (await pb.collection("regula_programs").getFullList({
     sort: "-created",
     expand: "parent,area",
-  }) as Promise<Program[]>;
+  })) as Program[];
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const toActivate = programs.filter(
+    (p) =>
+      p.status === "planned" && p.start_date && new Date(p.start_date) <= today,
+  );
+
+  if (toActivate.length > 0) {
+    await Promise.all(
+      toActivate.map((p) =>
+        pb.collection("regula_programs").update(p.id, { status: "active" }),
+      ),
+    );
+    toActivate.forEach((p) => {
+      p.status = "active";
+    });
+  }
+
+  return programs;
 }
 
 export async function getProgram(id: string): Promise<Program> {

@@ -1,6 +1,12 @@
 import { StorageQuotaBar } from "@/components/StorageQuotaBar";
 import { toaster } from "@/components/ui/toaster";
 import pb from "@/lib/pocketbase";
+import {
+  createArea,
+  deleteArea,
+  listAreas,
+  updateArea,
+} from "@/lib/services/areaService";
 import { listPrograms } from "@/lib/services/programService";
 import {
   DEFAULT_AHEAD_WEEKS,
@@ -16,7 +22,7 @@ import {
   listVacations,
   previewStackOverflow,
 } from "@/lib/services/vacationService";
-import type { Program, Vacation, VacationStrategy } from "@/types/domain";
+import type { Area, Program, Vacation, VacationStrategy } from "@/types/domain";
 import {
   Alert,
   Avatar,
@@ -64,6 +70,7 @@ const COLLECTIONS: { key: CollectionName; label: string }[] = [
 ];
 
 const SECTION_NAV = [
+  { id: "areas", label: "Areas" },
   { id: "general", label: "General" },
   { id: "active-programs", label: "Active Programs" },
   { id: "storage", label: "Storage" },
@@ -425,6 +432,297 @@ function ActiveProgramsConfig() {
             </HStack>
           ))}
         </Stack>
+      )}
+    </Stack>
+  );
+}
+
+function AreasConfig() {
+  const qc = useQueryClient();
+
+  const { data: areas = [] } = useQuery<Area[]>({
+    queryKey: ["areas"],
+    queryFn: listAreas,
+  });
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editColor, setEditColor] = useState("#6366f1");
+  const [editDescription, setEditDescription] = useState("");
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newColor, setNewColor] = useState("#6366f1");
+  const [newDescription, setNewDescription] = useState("");
+
+  const createMut = useMutation({
+    mutationFn: createArea,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["areas"] });
+      setCreateOpen(false);
+      setNewName("");
+      setNewColor("#6366f1");
+      setNewDescription("");
+      toaster.create({ type: "success", title: "Area created" });
+    },
+    onError: () => {
+      toaster.create({ type: "error", title: "Failed to create area" });
+    },
+  });
+
+  const updateMut = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Area> }) =>
+      updateArea(id, data),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["areas"] });
+      setEditingId(null);
+      toaster.create({ type: "success", title: "Area updated" });
+    },
+    onError: () => {
+      toaster.create({ type: "error", title: "Failed to update area" });
+    },
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: deleteArea,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["areas"] });
+      toaster.create({ type: "success", title: "Area deleted" });
+    },
+    onError: () => {
+      toaster.create({ type: "error", title: "Failed to delete area" });
+    },
+  });
+
+  const startEdit = (area: Area) => {
+    setEditingId(area.id);
+    setEditName(area.name);
+    setEditColor(area.color || "#6366f1");
+    setEditDescription(area.description || "");
+  };
+
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+    createMut.mutate({
+      name: newName.trim(),
+      color: newColor,
+      description: newDescription.trim(),
+    });
+  };
+
+  const handleUpdate = (id: string) => {
+    if (!editName.trim()) return;
+    updateMut.mutate({
+      id,
+      data: {
+        name: editName.trim(),
+        color: editColor,
+        description: editDescription.trim(),
+      },
+    });
+  };
+
+  return (
+    <Stack gap={4}>
+      {areas.length === 0 && !createOpen && (
+        <Text fontSize="sm" color="fg.muted">
+          No areas yet. Create one below to get started.
+        </Text>
+      )}
+
+      {areas.length > 0 && (
+        <Stack gap={2}>
+          {areas.map((area) =>
+            editingId === area.id ? (
+              <HStack
+                key={area.id}
+                p={3}
+                borderWidth={1}
+                borderRadius="md"
+                bg="bg.subtle"
+                gap={2}
+                flexWrap="wrap"
+              >
+                <input
+                  type="color"
+                  value={editColor}
+                  onChange={(e) => setEditColor(e.target.value)}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    padding: 2,
+                    border: "none",
+                    borderRadius: 4,
+                    cursor: "pointer",
+                    background: "transparent",
+                  }}
+                />
+                <Input
+                  size="sm"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Name"
+                  flex={1}
+                  minW="120px"
+                />
+                <Input
+                  size="sm"
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  placeholder="Description (optional)"
+                  flex={2}
+                  minW="160px"
+                />
+                <HStack gap={1}>
+                  <Button
+                    size="xs"
+                    colorPalette="blue"
+                    loading={updateMut.isPending}
+                    onClick={() => handleUpdate(area.id)}
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => setEditingId(null)}
+                  >
+                    Cancel
+                  </Button>
+                </HStack>
+              </HStack>
+            ) : (
+              <HStack
+                key={area.id}
+                p={3}
+                borderWidth={1}
+                borderRadius="md"
+                bg="bg.subtle"
+                justify="space-between"
+                flexWrap="wrap"
+                gap={2}
+              >
+                <HStack gap={3}>
+                  <Box
+                    w={5}
+                    h={5}
+                    borderRadius="sm"
+                    bg={area.color || "gray.300"}
+                    flexShrink={0}
+                  />
+                  <Stack gap={0}>
+                    <Text fontWeight="medium" fontSize="sm">
+                      {area.name}
+                    </Text>
+                    {area.description && (
+                      <Text fontSize="xs" color="fg.muted">
+                        {area.description}
+                      </Text>
+                    )}
+                  </Stack>
+                </HStack>
+                <HStack gap={1}>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => startEdit(area)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    colorPalette="red"
+                    loading={deleteMut.isPending}
+                    onClick={() => deleteMut.mutate(area.id)}
+                  >
+                    Delete
+                  </Button>
+                </HStack>
+              </HStack>
+            ),
+          )}
+        </Stack>
+      )}
+
+      {createOpen ? (
+        <Box
+          as="form"
+          onSubmit={handleCreate}
+          p={3}
+          borderWidth={1}
+          borderRadius="md"
+          bg="bg.subtle"
+        >
+          <Stack gap={3}>
+            <HStack gap={2} flexWrap="wrap">
+              <Box>
+                <Text fontSize="xs" color="fg.muted" mb={1}>
+                  Color
+                </Text>
+                <input
+                  type="color"
+                  value={newColor}
+                  onChange={(e) => setNewColor(e.target.value)}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    padding: 2,
+                    border: "none",
+                    borderRadius: 4,
+                    cursor: "pointer",
+                    background: "transparent",
+                  }}
+                />
+              </Box>
+              <Field.Root flex={1} minW="120px" required>
+                <Field.Label fontSize="xs">Name</Field.Label>
+                <Input
+                  size="sm"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="e.g. Mathematics"
+                />
+              </Field.Root>
+              <Field.Root flex={2} minW="160px">
+                <Field.Label fontSize="xs">Description</Field.Label>
+                <Input
+                  size="sm"
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  placeholder="Optional"
+                />
+              </Field.Root>
+            </HStack>
+            <HStack gap={2}>
+              <Button
+                type="submit"
+                size="sm"
+                colorPalette="blue"
+                loading={createMut.isPending}
+              >
+                Create Area
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setCreateOpen(false)}
+              >
+                Cancel
+              </Button>
+            </HStack>
+          </Stack>
+        </Box>
+      ) : (
+        <Button
+          size="sm"
+          variant="outline"
+          alignSelf="flex-start"
+          onClick={() => setCreateOpen(true)}
+        >
+          + New Area
+        </Button>
       )}
     </Stack>
   );
@@ -856,7 +1154,6 @@ export default function Settings() {
         <Stack gap={1}>
           {SECTION_NAV.map((s) => (
             <Link
-              as={Box}
               key={s.id}
               id={`nav-${s.id}`}
               href={`#${s.id}`}
@@ -867,6 +1164,7 @@ export default function Settings() {
               color="fg.muted"
               _hover={{ bg: "bg.muted", color: "fg" }}
               transition="all 0.15s"
+              textDecoration="none"
             >
               {s.label}
             </Link>
@@ -877,6 +1175,14 @@ export default function Settings() {
       {/* Main content */}
       <Stack id="main-content" gap={10}>
         <Heading size="lg">Settings</Heading>
+
+        <SettingSection
+          id="areas"
+          title="Areas"
+          description="Define subject areas used to categorise programs and resources. Set these up before importing a program."
+        >
+          <AreasConfig />
+        </SettingSection>
 
         <SettingSection
           id="general"

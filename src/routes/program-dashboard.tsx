@@ -328,12 +328,14 @@ function ResourceForm({
   onSubmit,
   loading,
   onCancel,
+  bare,
 }: {
   areas: Area[];
   defaultValues?: Partial<Resource>;
   onSubmit: (data: Partial<Resource>) => Promise<unknown>;
   loading: boolean;
   onCancel: () => void;
+  bare?: boolean;
 }) {
   const [title, setTitle] = useState(defaultValues?.title ?? "");
   const [author, setAuthor] = useState(defaultValues?.author ?? "");
@@ -360,15 +362,19 @@ function ResourceForm({
     <Box
       as="form"
       onSubmit={handleSubmit}
-      p={4}
-      borderWidth={1}
-      borderRadius="md"
-      bg="bg.subtle"
+      {...(!bare && {
+        p: 4,
+        borderWidth: 1,
+        borderRadius: "md",
+        bg: "bg.subtle",
+      })}
     >
       <Stack gap={3}>
-        <Heading size="sm">
-          {defaultValues ? "Edit Resource" : "New Resource"}
-        </Heading>
+        {!bare && (
+          <Heading size="sm">
+            {defaultValues ? "Edit Resource" : "New Resource"}
+          </Heading>
+        )}
         <Field.Root required>
           <Field.Label>Title</Field.Label>
           <Input
@@ -1783,20 +1789,39 @@ export default function ProgramDashboard() {
                     onSubmit={(data) => createResourceMut.mutateAsync(data)}
                   />
                 )}
-                {editingResource && (
-                  <ResourceForm
-                    areas={areas}
-                    defaultValues={editingResource}
-                    loading={updateResourceMut.isPending}
-                    onCancel={() => setEditingResourceId(null)}
-                    onSubmit={(data) =>
-                      updateResourceMut.mutateAsync({
-                        id: editingResource.id,
-                        data,
-                      })
-                    }
-                  />
-                )}
+                <Dialog.Root
+                  open={!!editingResource}
+                  onOpenChange={({ open: o }) =>
+                    !o && setEditingResourceId(null)
+                  }
+                >
+                  <Dialog.Backdrop />
+                  <Dialog.Positioner>
+                    <Dialog.Content mx="auto" maxH="90vh" overflowY="auto">
+                      <Dialog.Header>
+                        <Dialog.Title>Edit Resource</Dialog.Title>
+                        <Dialog.CloseTrigger />
+                      </Dialog.Header>
+                      <Dialog.Body pb={6}>
+                        {editingResource && (
+                          <ResourceForm
+                            areas={areas}
+                            defaultValues={editingResource}
+                            loading={updateResourceMut.isPending}
+                            onCancel={() => setEditingResourceId(null)}
+                            onSubmit={(data) =>
+                              updateResourceMut.mutateAsync({
+                                id: editingResource.id,
+                                data,
+                              })
+                            }
+                            bare
+                          />
+                        )}
+                      </Dialog.Body>
+                    </Dialog.Content>
+                  </Dialog.Positioner>
+                </Dialog.Root>
 
                 {programResources.length === 0 ? (
                   <Box py={12} textAlign="center" color="fg.muted">

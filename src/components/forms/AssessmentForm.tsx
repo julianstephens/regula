@@ -5,13 +5,7 @@ import type {
   Program,
   SubmissionMode,
 } from "@/types/domain";
-import {
-  Button,
-  Field,
-  Input,
-  NativeSelect,
-  Stack,
-} from "@chakra-ui/react";
+import { Button, Field, Input, NativeSelect, Stack } from "@chakra-ui/react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 

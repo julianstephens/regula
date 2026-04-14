@@ -75,7 +75,7 @@ export default function Assessments() {
   });
 
   const createMut = useMutation({
-    mutationFn: ({ formData }: { formData: Partial<Assessment>; }) =>
+    mutationFn: ({ formData }: { formData: Partial<Assessment> }) =>
       createAssessment(formData),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["assessments"] });
@@ -214,7 +214,7 @@ export default function Assessments() {
                   <Badge variant="subtle">
                     {a.assessment_type
                       ? a.assessment_type.charAt(0).toUpperCase() +
-                      a.assessment_type.slice(1)
+                        a.assessment_type.slice(1)
                       : "—"}
                   </Badge>
                 </Table.Cell>

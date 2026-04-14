@@ -22,3 +22,7 @@ export async function updateArea(
 ): Promise<Area> {
   return pb.collection("regula_areas").update(id, data) as Promise<Area>;
 }
+
+export async function deleteArea(id: string): Promise<void> {
+  await pb.collection("regula_areas").delete(id);
+}

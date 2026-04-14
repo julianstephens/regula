@@ -6,7 +6,7 @@ import { createAssessment } from "@/lib/services/assessmentService";
 import { createLesson } from "@/lib/services/lessonService";
 import { createModule } from "@/lib/services/moduleService";
 import { createProgram } from "@/lib/services/programService";
-import { createResource } from "@/lib/services/resourceService";
+import { createResource, listResources } from "@/lib/services/resourceService";
 import { DEFAULT_WORK_WEEK, getSettings } from "@/lib/services/settingsService";
 import { applyExistingVacationsToPrograms } from "@/lib/services/vacationService";
 
@@ -112,6 +112,12 @@ export async function importCourseOfStudyFile(
   // Resolve __create__ sentinels — create new resources and update the map.
   const resourceMap = { ...params.resourceMap };
   let resourcesCreated = 0;
+  const hasCreateSentinels = Object.values(resourceMap).some(
+    (v) => v === "__create__",
+  );
+  // Fetch existing resources once so we can avoid creating duplicates when the
+  // same title is already present (e.g. due to a stale UI cache).
+  const existingResources = hasCreateSentinels ? await listResources() : [];
   for (const [titleKey, value] of Object.entries(resourceMap)) {
     if (value === "__create__") {
       // Capitalise the stored title key back to a readable title.
@@ -119,9 +125,18 @@ export async function importCourseOfStudyFile(
         .split(" ")
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ");
-      const created = await createResource({ title, resource_type: "other" });
-      resourceMap[titleKey] = created.id;
-      resourcesCreated++;
+      // Guard against duplicates: reuse an existing resource with the same
+      // title rather than inserting another one.
+      const existing = existingResources.find(
+        (r) => r.title.toLowerCase() === titleKey,
+      );
+      if (existing) {
+        resourceMap[titleKey] = existing.id;
+      } else {
+        const created = await createResource({ title, resource_type: "other" });
+        resourceMap[titleKey] = created.id;
+        resourcesCreated++;
+      }
     }
   }
 
