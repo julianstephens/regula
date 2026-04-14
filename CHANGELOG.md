@@ -1,3 +1,7 @@
+## v0.2.0
+
+- Update `pb_collections.json` to match the latest data model changes, including replacing study items with lessons and adding new fields for assessments and reviews
+
 ## v0.1.5
 
 - Add in-app documentation for all features

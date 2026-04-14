@@ -128,7 +128,12 @@
         "hidden": false,
         "system": false,
         "maxSelect": 1,
-        "values": ["year", "term", "block", "custom", "course"]
+        "values": [
+          "year",
+          "term",
+          "custom",
+          "course"
+        ]
       },
       {
         "id": "progs_stat001",
@@ -139,19 +144,12 @@
         "hidden": false,
         "system": false,
         "maxSelect": 1,
-        "values": ["planned", "active", "completed", "archived"]
-      },
-      {
-        "id": "progs_bwks001",
-        "name": "block_weeks",
-        "type": "number",
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "min": 2,
-        "max": 6,
-        "noDecimal": false
+        "values": [
+          "planned",
+          "active",
+          "completed",
+          "archived"
+        ]
       },
       {
         "id": "progs_owner01",
@@ -201,7 +199,15 @@
         "hidden": false,
         "system": false,
         "maxSelect": 7,
-        "values": ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+        "values": [
+          "sun",
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat"
+        ]
       },
       {
         "id": "progs_mkdays1",
@@ -212,7 +218,15 @@
         "hidden": false,
         "system": false,
         "maxSelect": 7,
-        "values": ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+        "values": [
+          "sun",
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat"
+        ]
       },
       {
         "id": "progs_creat01",
@@ -295,7 +309,14 @@
         "hidden": false,
         "system": false,
         "maxSelect": 1,
-        "values": ["book", "article", "video", "podcast", "course", "other"]
+        "values": [
+          "book",
+          "article",
+          "video",
+          "podcast",
+          "course",
+          "other"
+        ]
       },
       {
         "id": "rsrc_area001",
@@ -617,7 +638,12 @@
         "hidden": false,
         "system": false,
         "maxSelect": 1,
-        "values": ["none", "pass_fail", "numeric", "rubric"]
+        "values": [
+          "none",
+          "pass_fail",
+          "numeric",
+          "rubric"
+        ]
       },
       {
         "id": "lessn_mast001",
@@ -692,200 +718,6 @@
     "deleteRule": "owner = @request.auth.id"
   },
   {
-    "id": "assncolid000001",
-    "name": "regula_assignments",
-    "type": "base",
-    "system": false,
-    "fields": [
-      {
-        "id": "assn_titl0001",
-        "name": "title",
-        "type": "text",
-        "required": true,
-        "presentable": false,
-        "hidden": false,
-        "system": false
-      },
-      {
-        "id": "assn_type0001",
-        "name": "type",
-        "type": "select",
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "maxSelect": 1,
-        "values": [
-          "essay",
-          "paper",
-          "problem_set",
-          "reflection",
-          "translation",
-          "presentation",
-          "other"
-        ]
-      },
-      {
-        "id": "assn_stat0001",
-        "name": "status",
-        "type": "select",
-        "required": true,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "maxSelect": 1,
-        "values": [
-          "not_started",
-          "in_progress",
-          "submitted",
-          "graded",
-          "archived"
-        ]
-      },
-      {
-        "id": "assn_lessn001",
-        "name": "lesson",
-        "type": "relation",
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "collectionId": "lessncolid00001",
-        "cascadeDelete": true,
-        "minSelect": null,
-        "maxSelect": 1
-      },
-      {
-        "id": "assn_modul001",
-        "name": "module",
-        "type": "relation",
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "collectionId": "modulcolid00001",
-        "cascadeDelete": false,
-        "minSelect": null,
-        "maxSelect": 1
-      },
-      {
-        "id": "assn_prog0001",
-        "name": "program",
-        "type": "relation",
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "collectionId": "progrscolid0001",
-        "cascadeDelete": true,
-        "minSelect": null,
-        "maxSelect": 1
-      },
-      {
-        "id": "assn_duat0001",
-        "name": "due_at",
-        "type": "date",
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "min": "",
-        "max": ""
-      },
-      {
-        "id": "assn_subat001",
-        "name": "submitted_at",
-        "type": "date",
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "min": "",
-        "max": ""
-      },
-      {
-        "id": "assn_grdt0001",
-        "name": "grade_type",
-        "type": "select",
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "maxSelect": 1,
-        "values": ["none", "pass_fail", "numeric", "rubric"]
-      },
-      {
-        "id": "assn_mast0001",
-        "name": "mastery_evidence",
-        "type": "text",
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "system": false
-      },
-      {
-        "id": "assn_emin0001",
-        "name": "estimated_minutes",
-        "type": "number",
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "min": null,
-        "max": null,
-        "noDecimal": false
-      },
-      {
-        "id": "assn_desc0001",
-        "name": "description",
-        "type": "text",
-        "required": false,
-        "presentable": false,
-        "hidden": false,
-        "system": false
-      },
-      {
-        "id": "assn_own00001",
-        "name": "owner",
-        "type": "relation",
-        "required": true,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "collectionId": "_pb_users_auth_",
-        "cascadeDelete": false,
-        "minSelect": null,
-        "maxSelect": 1
-      },
-      {
-        "id": "assn_creat001",
-        "name": "created",
-        "type": "autodate",
-        "system": true,
-        "presentable": false,
-        "hidden": false,
-        "onCreate": true,
-        "onUpdate": false
-      },
-      {
-        "id": "assn_updat001",
-        "name": "updated",
-        "type": "autodate",
-        "system": true,
-        "presentable": false,
-        "hidden": false,
-        "onCreate": true,
-        "onUpdate": true
-      }
-    ],
-    "indexes": [],
-    "listRule": "owner = @request.auth.id",
-    "viewRule": "owner = @request.auth.id",
-    "createRule": "owner = @request.auth.id",
-    "updateRule": "owner = @request.auth.id",
-    "deleteRule": "owner = @request.auth.id"
-  },
-  {
     "id": "asssmcolid00001",
     "name": "regula_assessments",
     "type": "base",
@@ -930,7 +762,12 @@
         "hidden": false,
         "system": false,
         "maxSelect": 1,
-        "values": ["written", "oral", "digital", "none"]
+        "values": [
+          "written",
+          "oral",
+          "digital",
+          "none"
+        ]
       },
       {
         "id": "assm_stat0001",
@@ -1102,7 +939,12 @@
         "hidden": false,
         "system": false,
         "maxSelect": 1,
-        "values": ["none", "pass_fail", "numeric", "rubric"]
+        "values": [
+          "none",
+          "pass_fail",
+          "numeric",
+          "rubric"
+        ]
       },
       {
         "id": "assm_own00001",
@@ -1116,6 +958,43 @@
         "cascadeDelete": false,
         "minSelect": null,
         "maxSelect": 1
+      },
+      {
+        "id": "assm_attch001",
+        "name": "attachment",
+        "type": "file",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 1,
+        "maxSize": 20971520,
+        "mimeTypes": [
+          "application/pdf"
+        ],
+        "thumbs": null,
+        "protected": false
+      },
+      {
+        "id": "assm_aurl0001",
+        "name": "attachment_url",
+        "type": "text",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false
+      },
+      {
+        "id": "assm_aszbyt1",
+        "name": "attachment_size_bytes",
+        "type": "number",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": 0,
+        "max": null,
+        "noDecimal": true
       },
       {
         "id": "assm_creat001",
@@ -1230,7 +1109,11 @@
         "hidden": false,
         "system": false,
         "maxSelect": 1,
-        "values": ["active", "suspended", "completed"]
+        "values": [
+          "active",
+          "suspended",
+          "completed"
+        ]
       },
       {
         "id": "revw_fcnt0001",
@@ -1361,7 +1244,12 @@
         "hidden": false,
         "system": false,
         "maxSelect": 1,
-        "values": ["completed", "partial", "blocked", "abandoned"]
+        "values": [
+          "completed",
+          "partial",
+          "blocked",
+          "abandoned"
+        ]
       },
       {
         "id": "ssess_lssns1",
@@ -1526,18 +1414,6 @@
     "system": false,
     "fields": [
       {
-        "id": "uset_bwks001",
-        "name": "block_weeks",
-        "type": "number",
-        "required": true,
-        "presentable": false,
-        "hidden": false,
-        "system": false,
-        "min": 2,
-        "max": 6,
-        "noDecimal": false
-      },
-      {
         "id": "uset_awks001",
         "name": "ahead_weeks",
         "type": "number",
@@ -1576,6 +1452,49 @@
         "maxSelect": 1
       },
       {
+        "id": "uset_wwk00001",
+        "name": "work_week",
+        "type": "select",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 7,
+        "values": [
+          "sun",
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat"
+        ]
+      },
+      {
+        "id": "uset_sqbyt01",
+        "name": "storage_quota_bytes",
+        "type": "number",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": 0,
+        "max": null,
+        "noDecimal": true
+      },
+      {
+        "id": "uset_subyt01",
+        "name": "storage_used_bytes",
+        "type": "number",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": 0,
+        "max": null,
+        "noDecimal": true
+      },
+      {
         "id": "uset_creat01",
         "name": "created",
         "type": "autodate",
@@ -1587,6 +1506,138 @@
       },
       {
         "id": "uset_updat01",
+        "name": "updated",
+        "type": "autodate",
+        "system": true,
+        "presentable": false,
+        "hidden": false,
+        "onCreate": true,
+        "onUpdate": true
+      }
+    ],
+    "indexes": [],
+    "listRule": "owner = @request.auth.id",
+    "viewRule": "owner = @request.auth.id",
+    "createRule": "owner = @request.auth.id",
+    "updateRule": "owner = @request.auth.id",
+    "deleteRule": "owner = @request.auth.id"
+  },
+  {
+    "id": "vacncolid000001",
+    "name": "regula_vacations",
+    "type": "base",
+    "system": false,
+    "fields": [
+      {
+        "id": "vacn_name0001",
+        "name": "name",
+        "type": "text",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false
+      },
+      {
+        "id": "vacn_sdate01",
+        "name": "start_date",
+        "type": "text",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false
+      },
+      {
+        "id": "vacn_edate01",
+        "name": "end_date",
+        "type": "text",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false
+      },
+      {
+        "id": "vacn_strat01",
+        "name": "strategy",
+        "type": "select",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 1,
+        "values": [
+          "stack",
+          "recovery",
+          "push_back"
+        ]
+      },
+      {
+        "id": "vacn_rbdays1",
+        "name": "recovery_before_days",
+        "type": "number",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": 0,
+        "max": null,
+        "noDecimal": false
+      },
+      {
+        "id": "vacn_radays1",
+        "name": "recovery_after_days",
+        "type": "number",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "min": 0,
+        "max": null,
+        "noDecimal": false
+      },
+      {
+        "id": "vacn_wwovrd1",
+        "name": "work_week_override_days",
+        "type": "select",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 7,
+        "values": [
+          "sun",
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat"
+        ]
+      },
+      {
+        "id": "vacn_owner01",
+        "name": "owner",
+        "type": "relation",
+        "required": true,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "collectionId": "_pb_users_auth_",
+        "cascadeDelete": true,
+        "minSelect": null,
+        "maxSelect": 1
+      },
+      {
+        "id": "vacn_creat01",
+        "name": "created",
+        "type": "autodate",
+        "system": true,
+        "presentable": false,
+        "hidden": false,
+        "onCreate": true,
+        "onUpdate": false
+      },
+      {
+        "id": "vacn_updat01",
         "name": "updated",
         "type": "autodate",
         "system": true,
