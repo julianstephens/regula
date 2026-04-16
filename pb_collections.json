@@ -128,7 +128,12 @@
         "hidden": false,
         "system": false,
         "maxSelect": 1,
-        "values": ["year", "term", "custom", "course"]
+        "values": [
+          "year",
+          "term",
+          "custom",
+          "course"
+        ]
       },
       {
         "id": "progs_stat001",
@@ -139,7 +144,12 @@
         "hidden": false,
         "system": false,
         "maxSelect": 1,
-        "values": ["planned", "active", "completed", "archived"]
+        "values": [
+          "planned",
+          "active",
+          "completed",
+          "archived"
+        ]
       },
       {
         "id": "progs_owner01",
@@ -189,7 +199,15 @@
         "hidden": false,
         "system": false,
         "maxSelect": 7,
-        "values": ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+        "values": [
+          "sun",
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat"
+        ]
       },
       {
         "id": "progs_mkdays1",
@@ -200,7 +218,15 @@
         "hidden": false,
         "system": false,
         "maxSelect": 7,
-        "values": ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+        "values": [
+          "sun",
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat"
+        ]
       },
       {
         "id": "progs_creat01",
@@ -283,7 +309,14 @@
         "hidden": false,
         "system": false,
         "maxSelect": 1,
-        "values": ["book", "article", "video", "podcast", "course", "other"]
+        "values": [
+          "book",
+          "article",
+          "video",
+          "podcast",
+          "course",
+          "other"
+        ]
       },
       {
         "id": "rsrc_area001",
@@ -605,7 +638,12 @@
         "hidden": false,
         "system": false,
         "maxSelect": 1,
-        "values": ["none", "pass_fail", "numeric", "rubric"]
+        "values": [
+          "none",
+          "pass_fail",
+          "numeric",
+          "rubric"
+        ]
       },
       {
         "id": "lessn_mast001",
@@ -724,7 +762,12 @@
         "hidden": false,
         "system": false,
         "maxSelect": 1,
-        "values": ["written", "oral", "digital", "none"]
+        "values": [
+          "written",
+          "oral",
+          "digital",
+          "none"
+        ]
       },
       {
         "id": "assm_stat0001",
@@ -896,7 +939,12 @@
         "hidden": false,
         "system": false,
         "maxSelect": 1,
-        "values": ["none", "pass_fail", "numeric", "rubric"]
+        "values": [
+          "none",
+          "pass_fail",
+          "numeric",
+          "rubric"
+        ]
       },
       {
         "id": "assm_own00001",
@@ -921,7 +969,9 @@
         "system": false,
         "maxSelect": 1,
         "maxSize": 20971520,
-        "mimeTypes": ["application/pdf"],
+        "mimeTypes": [
+          "application/pdf"
+        ],
         "thumbs": null,
         "protected": false
       },
@@ -1059,7 +1109,11 @@
         "hidden": false,
         "system": false,
         "maxSelect": 1,
-        "values": ["active", "suspended", "completed"]
+        "values": [
+          "active",
+          "suspended",
+          "completed"
+        ]
       },
       {
         "id": "revw_fcnt0001",
@@ -1190,7 +1244,12 @@
         "hidden": false,
         "system": false,
         "maxSelect": 1,
-        "values": ["completed", "partial", "blocked", "abandoned"]
+        "values": [
+          "completed",
+          "partial",
+          "blocked",
+          "abandoned"
+        ]
       },
       {
         "id": "ssess_lssns1",
@@ -1401,7 +1460,15 @@
         "hidden": false,
         "system": false,
         "maxSelect": 7,
-        "values": ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+        "values": [
+          "sun",
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat"
+        ]
       },
       {
         "id": "uset_sqbyt01",
@@ -1426,6 +1493,22 @@
         "min": 0,
         "max": null,
         "noDecimal": true
+      },
+      {
+        "id": "uset_dashm01",
+        "name": "dashboard_modules",
+        "type": "select",
+        "required": false,
+        "presentable": false,
+        "hidden": false,
+        "system": false,
+        "maxSelect": 2,
+        "values": [
+          "due_today",
+          "review_queue",
+          "overdue",
+          "upcoming_assessments"
+        ]
       },
       {
         "id": "uset_creat01",
@@ -1497,7 +1580,11 @@
         "hidden": false,
         "system": false,
         "maxSelect": 1,
-        "values": ["stack", "recovery", "push_back"]
+        "values": [
+          "stack",
+          "recovery",
+          "push_back"
+        ]
       },
       {
         "id": "vacn_rbdays1",
@@ -1532,7 +1619,15 @@
         "hidden": false,
         "system": false,
         "maxSelect": 7,
-        "values": ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+        "values": [
+          "sun",
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat"
+        ]
       },
       {
         "id": "vacn_owner01",

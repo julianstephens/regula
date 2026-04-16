@@ -8,6 +8,8 @@ export interface AssessmentFilters {
   module?: string;
   lesson?: string;
   sort?: string;
+  dueAfter?: string;
+  dueBefore?: string;
 }
 
 export async function listAssessments(
@@ -18,6 +20,8 @@ export async function listAssessments(
   if (filters.program) parts.push(`program = "${filters.program}"`);
   if (filters.module) parts.push(`module = "${filters.module}"`);
   if (filters.lesson) parts.push(`lesson = "${filters.lesson}"`);
+  if (filters.dueAfter) parts.push(`due_at >= "${filters.dueAfter}"`);
+  if (filters.dueBefore) parts.push(`due_at <= "${filters.dueBefore}"`);
   const filter = parts.join(" && ");
 
   return pb.collection("regula_assessments").getFullList({

@@ -10,6 +10,7 @@ import {
 import { listPrograms } from "@/lib/services/programService";
 import {
   DEFAULT_AHEAD_WEEKS,
+  DEFAULT_DASHBOARD_MODULES,
   DEFAULT_WORK_WEEK,
   getSettings,
   setActivePrograms,
@@ -72,11 +73,39 @@ const COLLECTIONS: { key: CollectionName; label: string }[] = [
 const SECTION_NAV = [
   { id: "areas", label: "Areas" },
   { id: "general", label: "General" },
+  { id: "dashboard", label: "Dashboard" },
   { id: "active-programs", label: "Active Programs" },
   { id: "storage", label: "Storage" },
   { id: "vacations", label: "Vacations" },
   { id: "export-data", label: "Export Data" },
   { id: "account", label: "Account" },
+];
+
+const DASHBOARD_MODULE_OPTIONS: {
+  key: string;
+  label: string;
+  description: string;
+}[] = [
+  {
+    key: "due_today",
+    label: "Due Today",
+    description: "Lessons due on today's date",
+  },
+  {
+    key: "review_queue",
+    label: "Review Queue",
+    description: "Active reviews due today",
+  },
+  {
+    key: "overdue",
+    label: "Overdue",
+    description: "Lessons past their due date",
+  },
+  {
+    key: "upcoming_assessments",
+    label: "Upcoming Assessments",
+    description: "Next 3 upcoming assessments",
+  },
 ];
 
 function downloadBlob(filename: string, content: string, mime: string) {
@@ -728,6 +757,93 @@ function AreasConfig() {
   );
 }
 
+function DashboardModulesConfig() {
+  const qc = useQueryClient();
+
+  const { data: settings } = useQuery({
+    queryKey: ["user_settings"],
+    queryFn: getSettings,
+  });
+
+  const activeModules: string[] = settings?.dashboard_modules?.length
+    ? settings.dashboard_modules
+    : DEFAULT_DASHBOARD_MODULES;
+
+  const updateMut = useMutation({
+    mutationFn: (modules: string[]) =>
+      updateSettings(settings!.id, { dashboard_modules: modules }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["user_settings"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
+      toaster.create({ type: "success", title: "Dashboard updated" });
+    },
+    onError: () => {
+      toaster.create({ type: "error", title: "Failed to update dashboard" });
+    },
+  });
+
+  const toggle = (key: string) => {
+    if (!settings) return;
+    if (activeModules.includes(key)) {
+      if (activeModules.length <= 1) return; // enforce min 1
+      updateMut.mutate(activeModules.filter((k) => k !== key));
+    } else {
+      if (activeModules.length >= 2) return; // enforce max 2
+      updateMut.mutate([...activeModules, key]);
+    }
+  };
+
+  return (
+    <Stack id="dashboard-modules" gap={2}>
+      <Text fontSize="sm" color="fg.muted">
+        Choose 1–2 modules to show above the This Week view. The This Week view
+        is always shown.
+      </Text>
+      <Stack gap={2}>
+        {DASHBOARD_MODULE_OPTIONS.map((opt) => {
+          const isActive = activeModules.includes(opt.key);
+          const isDisabled =
+            updateMut.isPending ||
+            (!isActive && activeModules.length >= 2) ||
+            (isActive && activeModules.length <= 1);
+          return (
+            <HStack
+              key={opt.key}
+              p={3}
+              borderWidth={1}
+              borderRadius="md"
+              bg={isActive ? "colorPalette.subtle" : "bg.subtle"}
+              borderColor={isActive ? "colorPalette.muted" : "border"}
+              transition="all 0.15s"
+              cursor={isDisabled ? "not-allowed" : "pointer"}
+              opacity={isDisabled ? 0.5 : 1}
+              onClick={() => !isDisabled && toggle(opt.key)}
+            >
+              <Checkbox.Root
+                checked={isActive}
+                onCheckedChange={() => toggle(opt.key)}
+                size="sm"
+                disabled={isDisabled}
+              >
+                <Checkbox.HiddenInput />
+                <Checkbox.Control />
+              </Checkbox.Root>
+              <Stack gap={0} flex={1}>
+                <Text fontSize="sm" fontWeight={isActive ? "medium" : "normal"}>
+                  {opt.label}
+                </Text>
+                <Text fontSize="xs" color="fg.muted">
+                  {opt.description}
+                </Text>
+              </Stack>
+            </HStack>
+          );
+        })}
+      </Stack>
+    </Stack>
+  );
+}
+
 function SettingSection({
   id,
   title,
@@ -1190,6 +1306,14 @@ export default function Settings() {
           description="Configure defaults for scheduling."
         >
           <GeneralSettings />
+        </SettingSection>
+
+        <SettingSection
+          id="dashboard"
+          title="Dashboard"
+          description="Choose which modules are shown on the dashboard."
+        >
+          <DashboardModulesConfig />
         </SettingSection>
 
         <SettingSection

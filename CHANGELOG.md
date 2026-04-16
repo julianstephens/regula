@@ -1,3 +1,8 @@
+## v0.2.2
+
+- Add configurable module support on the dashboard to allow users to customize which modules are displayed
+- Add color and icon indicators for overdue, in-progress, and completed items on the dashboard and calendar views
+
 ## v0.2.1
 
 - Fix bug with program import creating duplicate resources due to invalid cache

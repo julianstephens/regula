@@ -193,6 +193,7 @@ export interface UserSettings {
   ahead_weeks: number;
   work_week: string[];
   active_programs: string[];
+  dashboard_modules: string[];
   storage_quota_bytes: number;
   storage_used_bytes: number;
   owner: string;

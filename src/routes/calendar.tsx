@@ -177,14 +177,39 @@ export default function Calendar() {
     return map;
   }, [vacations]);
 
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  // Overdue/completed lesson flags for legend
+  const { hasOverdueNotStarted, hasOverdueInProgress, hasCompleted } =
+    useMemo(() => {
+      let notStarted = false;
+      let inProgress = false;
+      let completed = false;
+      lessons.forEach((l) => {
+        if (l.status === "completed") {
+          completed = true;
+          return;
+        }
+        const dueDateKey = l.due_at
+          ? l.due_at.split("T")[0].split(" ")[0]
+          : null;
+        if (!dueDateKey || dueDateKey >= todayKey) return;
+        if (l.status === "not_started") notStarted = true;
+        if (l.status === "active") inProgress = true;
+      });
+      return {
+        hasOverdueNotStarted: notStarted,
+        hasOverdueInProgress: inProgress,
+        hasCompleted: completed,
+      };
+    }, [lessons, todayKey]);
+
   // Calendar grid construction
   const firstDayOfMonth = startOfMonth(viewYear, viewMonth).getDay();
   const totalDays = daysInMonth(viewYear, viewMonth);
   const leadingBlanks = firstDayOfMonth;
   const totalCells = leadingBlanks + totalDays;
   const trailingBlanks = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
-
-  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   const selectedLessons = selectedDate
     ? (lessonsByDate[selectedDate] ?? [])
@@ -242,6 +267,48 @@ export default function Calendar() {
               </Text>
             </HStack>
           )}
+          {hasOverdueNotStarted && (
+            <HStack gap={1.5}>
+              <Box
+                w="6px"
+                h="6px"
+                bg="red.500"
+                transform="rotate(45deg)"
+                flexShrink={0}
+              />
+              <Text fontSize="xs" color="fg.muted">
+                Not started (past due)
+              </Text>
+            </HStack>
+          )}
+          {hasOverdueInProgress && (
+            <HStack gap={1.5}>
+              <Box
+                w="6px"
+                h="6px"
+                bg="orange.400"
+                transform="rotate(45deg)"
+                flexShrink={0}
+              />
+              <Text fontSize="xs" color="fg.muted">
+                In progress (past due)
+              </Text>
+            </HStack>
+          )}
+          {hasCompleted && (
+            <HStack gap={1.5}>
+              <Box
+                w="8px"
+                h="8px"
+                borderRadius="full"
+                bg="green.500"
+                flexShrink={0}
+              />
+              <Text fontSize="xs" color="fg.muted">
+                Completed
+              </Text>
+            </HStack>
+          )}
         </HStack>
       )}
 
@@ -283,6 +350,7 @@ export default function Calendar() {
             const day = i + 1;
             const dateKey = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
             const isToday = dateKey === todayKey;
+            const isPastDate = dateKey < todayKey;
             const dayLessons = lessonsByDate[dateKey] ?? [];
             const isSelected = selectedDate === dateKey;
             const isVacation = vacationDateSet.has(dateKey);
@@ -320,34 +388,73 @@ export default function Calendar() {
                   {day}
                 </Text>
                 <Stack id={`day-lessons-${dateKey}`} gap={0.5}>
-                  {dayLessons.slice(0, 3).map((l) => (
-                    <Box
-                      key={l.id}
-                      display="flex"
-                      alignItems="center"
-                      gap="4px"
-                    >
+                  {dayLessons.slice(0, 3).map((l) => {
+                    const dueDateKey = l.due_at
+                      ? l.due_at.split("T")[0].split(" ")[0]
+                      : null;
+                    const isCompleted = l.status === "completed";
+                    const isOverdueNotStarted =
+                      !isCompleted &&
+                      isPastDate &&
+                      dueDateKey !== null &&
+                      dueDateKey < todayKey &&
+                      l.status === "not_started";
+                    const isOverdueInProgress =
+                      !isCompleted &&
+                      isPastDate &&
+                      dueDateKey !== null &&
+                      dueDateKey < todayKey &&
+                      l.status === "active";
+                    const isOverdue =
+                      isOverdueNotStarted || isOverdueInProgress;
+                    return (
                       <Box
-                        w="6px"
-                        h="6px"
-                        borderRadius="full"
-                        bg={
-                          programAreaColorMap[l.program] ?? FALLBACK_DOT_COLOR
-                        }
-                        flexShrink={0}
-                      />
-                      <Text
-                        textAlign="left"
-                        fontSize="2xs"
-                        lineClamp={1}
-                        overflow="hidden"
-                        w="full"
-                        color="fg"
+                        key={l.id}
+                        display="flex"
+                        alignItems="center"
+                        gap="4px"
                       >
-                        {l.title}
-                      </Text>
-                    </Box>
-                  ))}
+                        <Box
+                          w="6px"
+                          h="6px"
+                          borderRadius={isOverdue ? "none" : "full"}
+                          bg={
+                            isCompleted
+                              ? "green.500"
+                              : isOverdueNotStarted
+                                ? "red.500"
+                                : isOverdueInProgress
+                                  ? "orange.400"
+                                  : (programAreaColorMap[l.program] ??
+                                    FALLBACK_DOT_COLOR)
+                          }
+                          flexShrink={0}
+                          transform={isOverdue ? "rotate(45deg)" : undefined}
+                        />
+                        <Text
+                          textAlign="left"
+                          fontSize="2xs"
+                          lineClamp={1}
+                          overflow="hidden"
+                          w="full"
+                          color={
+                            isCompleted
+                              ? "green.fg"
+                              : isOverdueNotStarted
+                                ? "red.fg"
+                                : isOverdueInProgress
+                                  ? "orange.fg"
+                                  : "fg"
+                          }
+                          textDecoration={
+                            isCompleted ? "line-through" : undefined
+                          }
+                        >
+                          {l.title}
+                        </Text>
+                      </Box>
+                    );
+                  })}
                   {dayLessons.length > 3 && (
                     <Text fontSize="2xs" color="fg.muted">
                       +{dayLessons.length - 3} more
@@ -442,6 +549,7 @@ export default function Calendar() {
                     <Flex justify="space-between" align="start" gap={2}>
                       <Stack gap={0}>
                         <AppLink
+                          textAlign="left"
                           to={`/lessons/${l.id}`}
                           fontWeight="medium"
                           color="colorPalette.fg"
@@ -463,6 +571,28 @@ export default function Calendar() {
                           )}
                       </Stack>
                       <HStack id={`selected-lesson-${l.id}-badges`} gap={2}>
+                        {selectedDate &&
+                          selectedDate < todayKey &&
+                          l.status === "not_started" && (
+                            <Badge
+                              colorPalette="red"
+                              variant="subtle"
+                              size="sm"
+                            >
+                              Past Due
+                            </Badge>
+                          )}
+                        {selectedDate &&
+                          selectedDate < todayKey &&
+                          l.status === "active" && (
+                            <Badge
+                              colorPalette="orange"
+                              variant="subtle"
+                              size="sm"
+                            >
+                              Past Due
+                            </Badge>
+                          )}
                         {l.type && (
                           <Badge variant="subtle" size="sm">
                             {l.type}

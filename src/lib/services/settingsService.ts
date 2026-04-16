@@ -3,6 +3,10 @@ import type { Program, UserSettings } from "@/types/domain";
 
 export const DEFAULT_AHEAD_WEEKS = 1;
 export const DEFAULT_WORK_WEEK: string[] = ["mon", "tue", "wed", "thu", "fri"];
+export const DEFAULT_DASHBOARD_MODULES: string[] = [
+  "due_today",
+  "review_queue",
+];
 
 export async function getSettings(): Promise<UserSettings> {
   const records = (await pb
@@ -16,13 +20,16 @@ export async function getSettings(): Promise<UserSettings> {
     ahead_weeks: DEFAULT_AHEAD_WEEKS,
     work_week: DEFAULT_WORK_WEEK,
     active_programs: [],
+    dashboard_modules: DEFAULT_DASHBOARD_MODULES,
     owner: pb.authStore.record!.id,
   }) as Promise<UserSettings>;
 }
 
 export async function updateSettings(
   id: string,
-  data: Partial<Pick<UserSettings, "ahead_weeks" | "work_week">>,
+  data: Partial<
+    Pick<UserSettings, "ahead_weeks" | "work_week" | "dashboard_modules">
+  >,
 ): Promise<UserSettings> {
   return pb
     .collection("regula_user_settings")

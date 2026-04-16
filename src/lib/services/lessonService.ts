@@ -4,6 +4,7 @@ import { createEvent } from "./itemEventService";
 
 export interface LessonFilters {
   status?: LessonStatus;
+  statuses?: LessonStatus[];
   program?: string;
   programIds?: string[];
   module?: string;
@@ -22,6 +23,11 @@ export async function listLessons(
 ): Promise<Lesson[]> {
   const parts: string[] = [];
   if (filters.status) parts.push(`status = "${filters.status}"`);
+  if (filters.statuses?.length) {
+    parts.push(
+      `(${filters.statuses.map((s) => `status = "${s}"`).join(" || ")})`,
+    );
+  }
   if (filters.program) parts.push(`program = "${filters.program}"`);
   if (filters.programIds?.length) {
     parts.push(
