@@ -1,3 +1,9 @@
+## v0.2.3
+
+- Fix bug with overdue items including items that are due today
+- Fix bug with caches not being properly invalidated after mutations
+- Fix bug where report page was not properly applying program filters to sessions
+
 ## v0.2.2
 
 - Add configurable module support on the dashboard to allow users to customize which modules are displayed

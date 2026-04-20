@@ -2,6 +2,10 @@ import { StatusBadge } from "@/components/cards/StatusBadge";
 import type { ModuleFormValues } from "@/components/forms/ModuleForm";
 import { ModuleForm } from "@/components/forms/ModuleForm";
 import { AppLink } from "@/components/ui/app-link";
+import {
+  invalidateModuleCaches,
+  invalidateProgramCaches,
+} from "@/lib/cacheInvalidation";
 import { formatDate } from "@/lib/dates";
 import { listAreas } from "@/lib/services/areaService";
 import { listAssessments } from "@/lib/services/assessmentService";
@@ -485,7 +489,7 @@ function ModuleDrawer({
   const updateMut = useMutation({
     mutationFn: (data: Partial<Module>) => updateModule(moduleId, data),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["modules"] });
+      invalidateModuleCaches(qc);
       setEditing(false);
     },
   });
@@ -493,8 +497,7 @@ function ModuleDrawer({
   const deleteMut = useMutation({
     mutationFn: () => deleteModule(moduleId),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["modules"] });
-      void qc.invalidateQueries({ queryKey: ["lessons"] });
+      invalidateModuleCaches(qc);
       onClose();
     },
   });
@@ -950,11 +953,10 @@ export default function ProgramDashboard() {
   const createProgramMut = useMutation({
     mutationFn: createProgram,
     onSuccess: async (createdProgram) => {
-      void qc.invalidateQueries({ queryKey: ["programs"] });
+      invalidateProgramCaches(qc);
       setCreating(false);
       if (createdProgram.type === "year" || createdProgram.type === "term") {
         await autoActivateIfFirstYearTermProgram(createdProgram.id);
-        void qc.invalidateQueries({ queryKey: ["user_settings"] });
       }
     },
   });
@@ -962,7 +964,7 @@ export default function ProgramDashboard() {
   const deleteProgramMut = useMutation({
     mutationFn: deleteProgramWithChildren,
     onSuccess: (_, id) => {
-      void qc.invalidateQueries({ queryKey: ["programs"] });
+      invalidateProgramCaches(qc);
       setDeletingProgramId(null);
       if (id === programId) setSearchParams({});
     },
@@ -971,7 +973,7 @@ export default function ProgramDashboard() {
   const updateProgramMut = useMutation({
     mutationFn: (data: Partial<Program>) => updateProgram(programId, data),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["programs"] });
+      invalidateProgramCaches(qc);
       setEditingProgram(false);
     },
   });
@@ -979,7 +981,7 @@ export default function ProgramDashboard() {
   const deleteProgramDetailMut = useMutation({
     mutationFn: () => deleteProgramWithChildren(programId),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["programs"] });
+      invalidateProgramCaches(qc);
       setSearchParams({});
       setConfirmDeleteProgram(false);
     },
@@ -988,7 +990,7 @@ export default function ProgramDashboard() {
   const createModuleMut = useMutation({
     mutationFn: (data: Partial<Module>) => createModule(data),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["modules"] });
+      invalidateModuleCaches(qc);
       setCreatingModule(false);
     },
   });

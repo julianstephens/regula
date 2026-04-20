@@ -1,5 +1,11 @@
 import { StorageQuotaBar } from "@/components/StorageQuotaBar";
 import { toaster } from "@/components/ui/toaster";
+import {
+  invalidateAreaCaches,
+  invalidateProgramCaches,
+  invalidateSettingsCaches,
+  invalidateVacationCaches,
+} from "@/lib/cacheInvalidation";
 import pb from "@/lib/pocketbase";
 import {
   createArea,
@@ -251,7 +257,7 @@ function GeneralSettings() {
     mutationFn: (data: { ahead_weeks: number; work_week: string[] }) =>
       updateSettings(settings!.id, data),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["user_settings"] });
+      invalidateSettingsCaches(qc);
       setAheadWeeks(undefined);
       setWorkWeek(undefined);
       toaster.create({ type: "success", title: "Settings saved" });
@@ -391,7 +397,7 @@ function ActiveProgramsConfig() {
   const updateMut = useMutation({
     mutationFn: (ids: string[]) => setActivePrograms(settings!.id, ids),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["user_settings"] });
+      invalidateProgramCaches(qc);
       toaster.create({ type: "success", title: "Active programs updated" });
     },
     onError: () => {
@@ -487,7 +493,7 @@ function AreasConfig() {
   const createMut = useMutation({
     mutationFn: createArea,
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["areas"] });
+      invalidateAreaCaches(qc);
       setCreateOpen(false);
       setNewName("");
       setNewColor("#6366f1");
@@ -503,7 +509,7 @@ function AreasConfig() {
     mutationFn: ({ id, data }: { id: string; data: Partial<Area> }) =>
       updateArea(id, data),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["areas"] });
+      invalidateAreaCaches(qc);
       setEditingId(null);
       toaster.create({ type: "success", title: "Area updated" });
     },
@@ -515,7 +521,7 @@ function AreasConfig() {
   const deleteMut = useMutation({
     mutationFn: deleteArea,
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["areas"] });
+      invalidateAreaCaches(qc);
       toaster.create({ type: "success", title: "Area deleted" });
     },
     onError: () => {
@@ -773,8 +779,7 @@ function DashboardModulesConfig() {
     mutationFn: (modules: string[]) =>
       updateSettings(settings!.id, { dashboard_modules: modules }),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["user_settings"] });
-      void qc.invalidateQueries({ queryKey: ["dashboard"] });
+      invalidateSettingsCaches(qc);
       toaster.create({ type: "success", title: "Dashboard updated" });
     },
     onError: () => {
@@ -923,9 +928,7 @@ function VacationsConfig() {
   const createMut = useMutation({
     mutationFn: createAndApplyVacation,
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["vacations"] });
-      void qc.invalidateQueries({ queryKey: ["lessons"] });
-      void qc.invalidateQueries({ queryKey: ["dashboard"] });
+      invalidateVacationCaches(qc);
       setFormOpen(false);
       setName("");
       setStartDate("");
@@ -947,7 +950,7 @@ function VacationsConfig() {
   const deleteMut = useMutation({
     mutationFn: deleteVacation,
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["vacations"] });
+      invalidateVacationCaches(qc);
       toaster.create({ type: "success", title: "Vacation deleted" });
     },
     onError: () => {

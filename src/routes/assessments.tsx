@@ -3,6 +3,7 @@ import type { AssessmentFormValues } from "@/components/forms/AssessmentForm";
 import { AssessmentForm } from "@/components/forms/AssessmentForm";
 import { AppLink } from "@/components/ui/app-link";
 import { toaster } from "@/components/ui/toaster";
+import { invalidateAssessmentCaches } from "@/lib/cacheInvalidation";
 import { formatDate } from "@/lib/dates";
 import {
   createAssessment,
@@ -78,7 +79,7 @@ export default function Assessments() {
     mutationFn: ({ formData }: { formData: Partial<Assessment> }) =>
       createAssessment(formData),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["assessments"] });
+      invalidateAssessmentCaches(qc);
       setCreating(false);
     },
   });

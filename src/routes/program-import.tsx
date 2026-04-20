@@ -1,4 +1,5 @@
 import { AppLink } from "@/components/ui/app-link";
+import { invalidateProgramCaches } from "@/lib/cacheInvalidation";
 import {
   parseCourseOfStudyFile,
   type ParsedCourseOfStudy,
@@ -788,6 +789,7 @@ export default function ProgramImport() {
         workWeek: resolvedWorkWeek ?? undefined,
       });
       await autoActivateIfFirstYearTermProgram(result.rootProgramId);
+      invalidateProgramCaches(qc);
       setImportResult(result);
     } catch (err) {
       setImportError((err as Error).message);

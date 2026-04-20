@@ -3,6 +3,10 @@ import type { LessonFormValues } from "@/components/forms/LessonForm";
 import { LessonForm } from "@/components/forms/LessonForm";
 import { SessionLogModal } from "@/components/forms/SessionLogModal";
 import { AppLink } from "@/components/ui/app-link";
+import {
+  invalidateLessonCaches,
+  invalidateReviewCaches,
+} from "@/lib/cacheInvalidation";
 import { formatDate } from "@/lib/dates";
 import { formatMinutes } from "@/lib/format";
 import { listEvents } from "@/lib/services/itemEventService";
@@ -88,7 +92,7 @@ export default function LessonDetail() {
     mutationFn: (data: Partial<Parameters<typeof updateLesson>[1]>) =>
       updateLesson(id!, data),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["lessons"] });
+      invalidateLessonCaches(qc);
       setEditing(false);
     },
   });
@@ -96,8 +100,7 @@ export default function LessonDetail() {
   const statusMut = useMutation({
     mutationFn: (status: LessonStatus) => changeStatus(id!, status),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["lessons"] });
-      void qc.invalidateQueries({ queryKey: ["item_events"] });
+      invalidateLessonCaches(qc);
     },
   });
 
@@ -109,6 +112,7 @@ export default function LessonDetail() {
         status: "active",
       }),
     onSuccess: () => {
+      invalidateReviewCaches(qc);
       void qc.invalidateQueries({ queryKey: ["reviews", { lesson: id }] });
     },
   });
@@ -273,8 +277,13 @@ export default function LessonDetail() {
           setLogSessionLoading(true);
           try {
             await logSession(data);
+            invalidateLessonCaches(qc);
             void qc.invalidateQueries({
               queryKey: ["study_sessions", { lesson: id }],
+            });
+            // Invalidate reports page cache
+            void qc.invalidateQueries({
+              queryKey: ["study_sessions", "reports"],
             });
           } finally {
             setLogSessionLoading(false);

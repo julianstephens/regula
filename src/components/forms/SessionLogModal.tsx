@@ -1,6 +1,8 @@
 import { LessonPicker } from "@/components/forms/LessonPicker";
+import { logger } from "@/lib/logger";
 import type { Lesson, SessionOutcome, SessionType } from "@/types/domain";
 import {
+  Box,
   Button,
   Dialog,
   Field,
@@ -8,6 +10,7 @@ import {
   Input,
   NativeSelect,
   Stack,
+  Text,
   Textarea,
 } from "@chakra-ui/react";
 import { useState } from "react";
@@ -43,16 +46,26 @@ export function SessionLogModal({
   const [startedAt, setStartedAt] = useState("");
   const [endedAt, setEndedAt] = useState("");
   const [notes, setNotes] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
     const start = new Date(startedAt);
     const end = new Date(endedAt);
-    const durationMinutes = Math.max(
-      0,
-      Math.round((end.getTime() - start.getTime()) / 60_000),
+
+    // Validate that end time is after start time
+    if (end <= start) {
+      setError("End time must be after start time.");
+      return;
+    }
+
+    const durationMinutes = Math.round(
+      (end.getTime() - start.getTime()) / 60_000,
     );
-    void onSubmit({
+
+    const sessionData = {
       lessons: lessonIds,
       session_type: sessionType,
       outcome,
@@ -60,15 +73,47 @@ export function SessionLogModal({
       ended_at: end.toISOString(),
       duration_minutes: durationMinutes,
       notes,
-    }).then(() => {
-      setLessonIds(defaultLessonIds ?? []);
-      setNotes("");
-      onClose();
+    };
+
+    logger.info("SessionLogModal: Submitting session form", {
+      lessonCount: lessonIds.length,
+      sessionType,
+      outcome,
+      durationMinutes,
+      startedAt: start.toISOString(),
+      endedAt: end.toISOString(),
     });
+
+    void onSubmit(sessionData)
+      .then(() => {
+        logger.info("SessionLogModal: Session submitted successfully", {
+          lessonCount: lessonIds.length,
+          durationMinutes,
+        });
+        setLessonIds(defaultLessonIds ?? []);
+        setNotes("");
+        setError(null);
+        onClose();
+      })
+      .catch((err) => {
+        logger.error(
+          "SessionLogModal: Session submission failed",
+          err as Error,
+        );
+        setError((err as Error).message);
+      });
   };
 
   return (
-    <Dialog.Root open={open} onOpenChange={({ open: o }) => !o && onClose()}>
+    <Dialog.Root
+      open={open}
+      onOpenChange={({ open: o }) => {
+        if (!o) {
+          setError(null);
+          onClose();
+        }
+      }}
+    >
       <Dialog.Backdrop />
       <Dialog.Positioner>
         <Dialog.Content>
@@ -77,6 +122,19 @@ export function SessionLogModal({
           </Dialog.Header>
           <Dialog.Body as="form" id="log-session-form" onSubmit={handleSubmit}>
             <Stack gap={4}>
+              {error && (
+                <Box
+                  p={3}
+                  borderRadius="md"
+                  bg="red.subtle"
+                  borderWidth={1}
+                  borderColor="red.muted"
+                >
+                  <Text fontSize="sm" color="red.fg">
+                    {error}
+                  </Text>
+                </Box>
+              )}
               {!defaultLessonIds?.length && (
                 <Field.Root required>
                   <Field.Label>Lessons</Field.Label>

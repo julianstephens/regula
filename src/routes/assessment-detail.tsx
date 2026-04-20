@@ -2,6 +2,7 @@ import { AssessmentStepper } from "@/components/assessments/AssessmentStepper";
 import { StatusBadge } from "@/components/cards/StatusBadge";
 import { AppLink } from "@/components/ui/app-link";
 import { toaster } from "@/components/ui/toaster";
+import { invalidateAssessmentCaches } from "@/lib/cacheInvalidation";
 import { formatDate } from "@/lib/dates";
 import pb from "@/lib/pocketbase";
 import {
@@ -998,7 +999,7 @@ export default function AssessmentDetail() {
         if (delta > 0) void incrementStorageUsed(delta);
         else if (delta < 0) void decrementStorageUsed(-delta);
       }
-      void qc.invalidateQueries({ queryKey: ["assessments"] });
+      invalidateAssessmentCaches(qc);
     },
   });
 
@@ -1006,7 +1007,7 @@ export default function AssessmentDetail() {
     mutationFn: () =>
       deleteAttachment(id!, assessment?.attachment_size_bytes ?? 0),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["assessments"] });
+      invalidateAssessmentCaches(qc);
       toaster.create({ type: "success", title: "Attachment removed" });
     },
     onError: () =>
@@ -1016,7 +1017,7 @@ export default function AssessmentDetail() {
   const deleteMut = useMutation({
     mutationFn: () => deleteAssessment(id!),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["assessments"] });
+      invalidateAssessmentCaches(qc);
       void navigate("/assessments");
     },
   });

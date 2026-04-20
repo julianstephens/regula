@@ -193,13 +193,14 @@ export default function Dashboard() {
     enabled: activeModules.includes("review_queue"),
   });
 
-  // Overdue: not_started or active lessons past due
+  // Overdue: not_started or active lessons past due (strictly before today)
+  const beforeTodayStr = toPbDate(new Date(today.getTime() - 1));
   const { data: overdueLessons = [] } = useQuery<Lesson[]>({
     queryKey: ["dashboard", "overdue"],
     queryFn: () =>
       listLessons({
         sort: "due_at",
-        dueBefore: todayStr,
+        dueBefore: beforeTodayStr,
         statuses: ["not_started", "active"],
         expand: "program",
       }),
@@ -258,21 +259,50 @@ export default function Dashboard() {
     return d;
   });
 
-  // Realtime subscription
+  // Realtime subscriptions for cache invalidation
   useEffect(() => {
-    let unsub: (() => void) | undefined;
+    const unsubscribers: Array<() => void> = [];
+
+    // Subscribe to lesson changes
     void pb
       .collection("regula_lessons")
       .subscribe("*", () => {
         void qc.invalidateQueries({ queryKey: ["dashboard"] });
       })
-      .then((fn) => {
-        unsub = fn;
+      .then(() => {
+        unsubscribers.push(
+          () => void pb.collection("regula_lessons").unsubscribe("*"),
+        );
+      });
+
+    // Subscribe to review changes
+    void pb
+      .collection("regula_reviews")
+      .subscribe("*", () => {
+        void qc.invalidateQueries({ queryKey: ["dashboard"] });
+        void qc.invalidateQueries({ queryKey: ["reviews"] });
+      })
+      .then(() => {
+        unsubscribers.push(
+          () => void pb.collection("regula_reviews").unsubscribe("*"),
+        );
+      });
+
+    // Subscribe to assessment changes
+    void pb
+      .collection("regula_assessments")
+      .subscribe("*", () => {
+        void qc.invalidateQueries({ queryKey: ["dashboard"] });
+        void qc.invalidateQueries({ queryKey: ["assessments"] });
+      })
+      .then(() => {
+        unsubscribers.push(
+          () => void pb.collection("regula_assessments").unsubscribe("*"),
+        );
       });
 
     return () => {
-      void pb.collection("regula_lessons").unsubscribe("*");
-      unsub?.();
+      unsubscribers.forEach((unsub) => unsub());
     };
   }, [qc]);
 
@@ -302,7 +332,11 @@ export default function Dashboard() {
                   >
                     <Heading size="sm">Due Today</Heading>
                     {dueTodayLessons.length > 0 && (
-                      <Badge colorPalette="orange" variant="solid">
+                      <Badge
+                        colorPalette="orange"
+                        border="1px solid orange"
+                        variant="subtle"
+                      >
                         {dueTodayLessons.length}
                       </Badge>
                     )}
@@ -380,7 +414,11 @@ export default function Dashboard() {
                   >
                     <Heading size="sm">Review Queue</Heading>
                     {reviewQueue.length > 0 && (
-                      <Badge colorPalette="purple" variant="solid">
+                      <Badge
+                        colorPalette="purple"
+                        border="1px solid purple"
+                        variant="subtle"
+                      >
                         {reviewQueue.length}
                       </Badge>
                     )}
@@ -462,7 +500,11 @@ export default function Dashboard() {
                   >
                     <Heading size="sm">Overdue</Heading>
                     {overdueLessons.length > 0 && (
-                      <Badge colorPalette="red" variant="solid">
+                      <Badge
+                        colorPalette="red"
+                        variant="subtle"
+                        border="1px solid red"
+                      >
                         {overdueLessons.length}
                       </Badge>
                     )}
@@ -496,6 +538,7 @@ export default function Dashboard() {
                           bg="red.subtle"
                           borderColor="red.emphasized"
                           justify="space-between"
+                          align="flex-start"
                         >
                           <Stack gap={0}>
                             <AppLink
@@ -506,7 +549,11 @@ export default function Dashboard() {
                               {l.title}
                             </AppLink>
                             {l.expand?.program && (
-                              <Text fontSize="xs" color="fg.muted">
+                              <Text
+                                textAlign="left"
+                                fontSize="xs"
+                                color="fg.muted"
+                              >
                                 {l.expand.program.name}
                               </Text>
                             )}
@@ -533,7 +580,11 @@ export default function Dashboard() {
                   >
                     <Heading size="sm">Upcoming Assessments</Heading>
                     {upcomingAssessments.length > 0 && (
-                      <Badge colorPalette="blue" variant="solid">
+                      <Badge
+                        colorPalette="blue"
+                        border="1px solid blue"
+                        variant="subtle"
+                      >
                         {upcomingAssessments.length}
                       </Badge>
                     )}

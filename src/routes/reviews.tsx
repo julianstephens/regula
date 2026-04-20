@@ -1,4 +1,5 @@
 import { AppLink } from "@/components/ui/app-link";
+import { invalidateReviewCaches } from "@/lib/cacheInvalidation";
 import { endOfDay, formatDate, toPbDate } from "@/lib/dates";
 import {
   createNextReview,
@@ -56,21 +57,21 @@ export default function Reviews() {
       outcome: "pass" | "fail";
     }) => createNextReview(lessonId, outcome),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["reviews"] });
+      invalidateReviewCaches(qc);
     },
   });
 
   const suspendMut = useMutation({
     mutationFn: (id: string) => updateReview(id, { status: "suspended" }),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["reviews"] });
+      invalidateReviewCaches(qc);
     },
   });
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => deleteReview(id),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["reviews"] });
+      invalidateReviewCaches(qc);
     },
   });
 

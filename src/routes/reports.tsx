@@ -1,5 +1,6 @@
 import { AppLink } from "@/components/ui/app-link";
 import { formatDate } from "@/lib/dates";
+import { logger } from "@/lib/logger";
 import { listLessons } from "@/lib/services/lessonService";
 import { listPrograms } from "@/lib/services/programService";
 import { listReviews } from "@/lib/services/reviewService";
@@ -25,6 +26,8 @@ export default function Reports() {
   // ""   = user explicitly chose "All programs"
   const [programFilter, setProgramFilter] = useState<string | null>(null);
 
+  logger.debug("Reports: Rendering reports page");
+
   const { data: settings } = useQuery({
     queryKey: ["user_settings"],
     queryFn: getSettings,
@@ -44,28 +47,36 @@ export default function Reports() {
       Array.isArray(settings?.active_programs) ? settings.active_programs : [],
     [settings],
   );
-  const effectiveProgramFilter = useMemo(
-    () =>
+  const effectiveProgramFilter = useMemo(() => {
+    const filter =
       programFilter !== null
         ? programFilter
         : (programs.find((p) => activeIds.includes(p.id))?.id ??
           programs[0]?.id ??
-          ""),
-    [programFilter, programs, activeIds],
-  );
+          "");
+
+    if (filter) {
+      logger.debug("Reports: Program filter applied", { filter });
+    }
+    return filter;
+  }, [programFilter, programs, activeIds]);
 
   // Lessons belong to courses (type === "course"), which are children of the selected term/year
-  const courseIds = useMemo(
-    () =>
-      effectiveProgramFilter
-        ? allPrograms
-            .filter(
-              (p) => p.type === "course" && p.parent === effectiveProgramFilter,
-            )
-            .map((p) => p.id)
-        : [],
-    [allPrograms, effectiveProgramFilter],
-  );
+  const courseIds = useMemo(() => {
+    const ids = effectiveProgramFilter
+      ? allPrograms
+          .filter(
+            (p) => p.type === "course" && p.parent === effectiveProgramFilter,
+          )
+          .map((p) => p.id)
+      : [];
+
+    logger.debug("Reports: Course IDs resolved", {
+      count: ids.length,
+      programFilter: effectiveProgramFilter,
+    });
+    return ids;
+  }, [allPrograms, effectiveProgramFilter]);
 
   const { data: allLessons = [] } = useQuery<Lesson[]>({
     queryKey: ["lessons", "reports"],
@@ -73,11 +84,23 @@ export default function Reports() {
   });
 
   const { data: allSessions = [] } = useQuery<StudySession[]>({
-    queryKey: ["study_sessions", "reports", effectiveProgramFilter],
-    queryFn: () =>
-      listSessions(
-        effectiveProgramFilter ? { program: effectiveProgramFilter } : {},
-      ),
+    queryKey: ["study_sessions", "reports", effectiveProgramFilter, courseIds],
+    queryFn: () => {
+      logger.debug("Reports: Fetching sessions for reports", {
+        effectiveProgramFilter,
+        courseIdCount: courseIds.length,
+      });
+      if (!effectiveProgramFilter) {
+        // "All programs" — fetch all completed sessions
+        return listSessions({});
+      }
+      if (courseIds.length === 0) {
+        // Program selected but courses not resolved yet
+        return Promise.resolve([]);
+      }
+      // Filter server-side by the course programs under the selected term
+      return listSessions({ programIds: courseIds });
+    },
   });
 
   const { data: allReviews = [] } = useQuery<Review[]>({
@@ -85,25 +108,58 @@ export default function Reports() {
     queryFn: () => listReviews({ sort: "due_at" }),
   });
 
+  logger.debug("Reports: Data fetched", {
+    lessonCount: allLessons.length,
+    sessionCount: allSessions.length,
+    reviewCount: allReviews.length,
+  });
+
   // Apply program filter to lessons via their course
-  const filteredLessons = useMemo(
-    () =>
-      courseIds.length > 0
-        ? allLessons.filter((l) => courseIds.includes(l.program))
-        : effectiveProgramFilter
-          ? []
-          : allLessons,
-    [allLessons, courseIds, effectiveProgramFilter],
-  );
+  const filteredLessons =
+    courseIds.length > 0
+      ? allLessons.filter((l) => courseIds.includes(l.program))
+      : effectiveProgramFilter
+        ? []
+        : allLessons;
+
+  logger.debug("Reports: Filtered lessons", {
+    total: allLessons.length,
+    filtered: filteredLessons.length,
+    programFilter: effectiveProgramFilter,
+  });
+
+  // Sessions are already filtered server-side by courseIds; just alias for clarity
+  const filteredSessions = allSessions;
+
+  logger.debug("Reports: Filtered sessions", {
+    total: allSessions.length,
+    programFilter: effectiveProgramFilter,
+  });
+
+  // Apply program filter to reviews via their lesson's program (course)
+  const filteredReviews =
+    courseIds.length > 0
+      ? allReviews.filter((r) =>
+          r.expand?.lesson?.program
+            ? courseIds.includes(r.expand.lesson.program)
+            : false,
+        )
+      : effectiveProgramFilter
+        ? []
+        : allReviews;
+
+  logger.debug("Reports: Filtered reviews", {
+    total: allReviews.length,
+    filtered: filteredReviews.length,
+  });
 
   // Lesson status breakdown
-  const byStatus = useMemo(() => {
-    const counts: Record<string, number> = {};
-    filteredLessons.forEach((l) => {
-      counts[l.status] = (counts[l.status] ?? 0) + 1;
-    });
-    return counts;
-  }, [filteredLessons]);
+  const byStatus: Record<string, number> = {};
+  filteredLessons.forEach((l) => {
+    byStatus[l.status] = (byStatus[l.status] ?? 0) + 1;
+  });
+
+  logger.debug("Reports: Lesson status breakdown calculated", byStatus);
 
   const total = filteredLessons.length;
   const completed = byStatus["completed"] ?? 0;
@@ -111,28 +167,21 @@ export default function Reports() {
   const not_started = byStatus["not_started"] ?? 0;
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
+  logger.info("Reports: Lesson stats calculated", {
+    total,
+    completed,
+    active,
+    not_started,
+    completionPercentage: pct,
+  });
+
   // Session stats
-  const totalSessionMinutes = allSessions.reduce(
+  const totalSessionMinutes = filteredSessions.reduce(
     (sum, s) => sum + (s.duration_minutes ?? 0),
     0,
   );
   const sessionHours = Math.floor(totalSessionMinutes / 60);
   const sessionMins = totalSessionMinutes % 60;
-
-  // Review stats — filter client-side via lesson's program (course)
-  const filteredReviews = useMemo(
-    () =>
-      courseIds.length > 0
-        ? allReviews.filter((r) =>
-            r.expand?.lesson?.program
-              ? courseIds.includes(r.expand.lesson.program)
-              : false,
-          )
-        : effectiveProgramFilter
-          ? []
-          : allReviews,
-    [allReviews, courseIds, effectiveProgramFilter],
-  );
   const activeReviews = filteredReviews.filter(
     (r) => r.status === "active",
   ).length;
@@ -140,20 +189,38 @@ export default function Reports() {
     (r) => r.status === "completed",
   ).length;
 
+  logger.info("Reports: Session stats calculated", {
+    sessionCount: filteredSessions.length,
+    totalMinutes: totalSessionMinutes,
+    totalHours: sessionHours,
+    totalMins: sessionMins,
+  });
+
+  logger.info("Reports: Review stats calculated", {
+    activeReviews,
+    completedReviews,
+    totalReviews: filteredReviews.length,
+  });
+
   // Top 5 recently reviewed lessons
-  const recentlyCompleted = useMemo(() => {
-    return filteredLessons
-      .filter((l) => l.status === "completed" && l.completed_at)
-      .sort(
-        (a, b) =>
-          new Date(b.completed_at!).getTime() -
-          new Date(a.completed_at!).getTime(),
-      )
-      .slice(0, 5);
-  }, [filteredLessons]);
+  const recentlyCompleted = filteredLessons
+    .filter((l) => l.status === "completed" && l.completed_at)
+    .sort(
+      (a, b) =>
+        new Date(b.completed_at!).getTime() -
+        new Date(a.completed_at!).getTime(),
+    )
+    .slice(0, 5);
+
+  logger.debug("Reports: Recently completed lessons", {
+    count: recentlyCompleted.length,
+  });
 
   // Lessons with no module
   const unassigned = filteredLessons.filter((l) => !l.module);
+  logger.debug("Reports: Unassigned lessons (no module)", {
+    count: unassigned.length,
+  });
 
   return (
     <Stack id="reports" gap={8}>
@@ -164,7 +231,12 @@ export default function Reports() {
         <NativeSelect.Root maxW="220px" size="sm">
           <NativeSelect.Field
             value={effectiveProgramFilter}
-            onChange={(e) => setProgramFilter(e.target.value)}
+            onChange={(e) => {
+              logger.info("Reports: Program filter changed", {
+                filter: e.target.value,
+              });
+              setProgramFilter(e.target.value);
+            }}
           >
             <option value="">All programs</option>
             {programs.map((p) => (
@@ -244,7 +316,7 @@ export default function Reports() {
             textAlign="center"
           >
             <Text fontSize="2xl" fontWeight="bold">
-              {allSessions.length}
+              {filteredSessions.length}
             </Text>
             <Text fontSize="xs" color="fg.muted">
               Total Sessions
@@ -272,8 +344,8 @@ export default function Reports() {
             textAlign="center"
           >
             <Text fontSize="2xl" fontWeight="bold">
-              {allSessions.length > 0
-                ? Math.round(totalSessionMinutes / allSessions.length)
+              {filteredSessions.length > 0
+                ? Math.round(totalSessionMinutes / filteredSessions.length)
                 : 0}
               m
             </Text>
@@ -327,7 +399,7 @@ export default function Reports() {
             textAlign="center"
           >
             <Text fontSize="2xl" fontWeight="bold">
-              {allReviews.length}
+              {filteredReviews.length}
             </Text>
             <Text fontSize="xs" color="fg.muted">
               Total in Queue
