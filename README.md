@@ -14,6 +14,8 @@ Regula is a PocketBase-backed study planning and session tracking app for managi
 - PocketBase authentication and realtime updates
 - Markdown syllabus import for creating study items from term materials
 
+![Regula programs page](docs/img/regula_programs.png)
+
 ## Tech stack
 
 - React 19
