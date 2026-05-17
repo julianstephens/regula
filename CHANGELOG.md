@@ -1,3 +1,7 @@
+## v0.2.4
+
+- Fix vulnerable dependencies
+
 ## v0.2.3
 
 - Fix bug with overdue items including items that are due today
