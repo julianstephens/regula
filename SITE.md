@@ -52,8 +52,8 @@ When a study session is completed, any associated lessons and assessments will a
 
 Users can schedule vacations in advance, which will be taken into account when planning study sessions and reviews. This allows users to plan breaks and time off from studying without disrupting their overall learning schedule. When a vacation is scheduled, there are three available strategies for handling any study sessions that would have been scheduled during the vacation period:
 
-    - **Push back**: Any sessions that would have been scheduled during the vacation period are pushed back to the next available time slot after the vacation ends.
-    - **Stack**: Any sessions that would have been scheduled during the vacation period are stacked before the vacation starts, allowing users to complete them in advance.
-    - **Recovery Days**: Any sessions that would have been scheduled during the vacation period are rescheduled to days off around the vacation period, such as weekends or other non-working days.
+- **Push back**: Any sessions that would have been scheduled during the vacation period are pushed back to the next available time slot after the vacation ends.
+- **Stack**: Any sessions that would have been scheduled during the vacation period are stacked before the vacation starts, allowing users to complete them in advance.
+- **Recovery Days**: Any sessions that would have been scheduled during the vacation period are rescheduled to days off around the vacation period, such as weekends or other non-working days.
 
 This vacation management infrastructure allows users to maintain a consistent study schedule while also accommodating planned breaks and time off, which is essential for long-term learning success and preventing burnout.
